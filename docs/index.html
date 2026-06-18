@@ -494,6 +494,18 @@
       min-width: 140px;
     }
 
+    [data-task-field],
+    [data-project-field] {
+      cursor: text;
+    }
+
+    [data-task-field="projectId"],
+    [data-task-field="plannedStart"],
+    [data-task-field="targetDate"],
+    [data-project-field="ddl"] {
+      cursor: pointer;
+    }
+
     table {
       width: 100%;
       min-width: 1040px;
@@ -1320,14 +1332,14 @@
       els.showAllBtn.addEventListener("click", toggleAll);
 
       els.projectRail.addEventListener("click", handleProjectRailClick);
-      els.projectRail.addEventListener("dblclick", openProjectFromCard);
-      els.projectRail.addEventListener("contextmenu", openProjectFromCard);
+      els.projectRail.addEventListener("dblclick", editProjectField);
+      els.projectRail.addEventListener("contextmenu", editProjectField);
       els.manageProjectsBtn.addEventListener("click", openProjectList);
       els.projectForm.addEventListener("submit", saveProject);
       els.projectCancelBtn.addEventListener("click", () => els.projectDialog.close());
       els.projectListBody.addEventListener("click", handleProjectListClick);
-      els.projectListBody.addEventListener("dblclick", openProjectFromCard);
-      els.projectListBody.addEventListener("contextmenu", openProjectFromCard);
+      els.projectListBody.addEventListener("dblclick", editProjectField);
+      els.projectListBody.addEventListener("contextmenu", editProjectField);
       els.projectListCloseBtn.addEventListener("click", () => els.projectListDialog.close());
       els.projectListAddBtn.addEventListener("click", () => {
         createDefaultProject();
@@ -1335,8 +1347,8 @@
       });
 
       els.taskBody.addEventListener("click", handleTaskClick);
-      els.taskBody.addEventListener("dblclick", openTaskFromRow);
-      els.taskBody.addEventListener("contextmenu", openTaskFromRow);
+      els.taskBody.addEventListener("dblclick", editTaskField);
+      els.taskBody.addEventListener("contextmenu", editTaskField);
       els.resetSortBtn.addEventListener("click", resetDefaultSort);
       els.taskBody.addEventListener("dragstart", handleDragStart);
       els.taskBody.addEventListener("dragover", handleDragOver);
@@ -1413,23 +1425,30 @@
       const project = findProject(card.dataset.projectId);
       if (!project) return;
 
-      if (button.dataset.projectAction === "edit") {
-        els.projectListDialog.close();
-        openProjectDialog(project);
-      }
-
       if (button.dataset.projectAction === "delete") {
         deleteProject(project);
       }
     }
 
-    function openProjectFromCard(event) {
+    function editProjectField(event) {
       if (event.target.closest("button")) return;
+      const fieldEl = event.target.closest("[data-project-field]");
       const card = event.target.closest("[data-project-id]");
-      if (!card) return;
-      event.preventDefault();
+      if (!fieldEl || !card) return;
       const project = findProject(card.dataset.projectId);
-      if (project) openProjectDialog(project);
+      if (!project) return;
+      event.preventDefault();
+
+      const field = fieldEl.dataset.projectField;
+      const config = field === "ddl"
+        ? { type: "date", value: project.ddl || "", save: (value) => { project.ddl = value; } }
+        : { type: "text", value: project.name, save: (value) => { project.name = value.trim() || "未命名项目"; } };
+
+      startInlineEdit(fieldEl, config, () => {
+        saveData();
+        render();
+        if (els.projectListDialog.open) renderProjectListDialog();
+      });
     }
 
     function createDefaultProject() {
@@ -1524,8 +1543,8 @@
       const ddl = project.ddl ? friendlyDate(project.ddl) : "未设置 DDL";
       return `
         <div class="project-list-item" data-project-id="${project.id}" title="双击或右键修改项目">
-          <div class="project-name" title="${escapeHtml(project.name)}">${escapeHtml(project.name)}</div>
-          <div class="project-ddl">${ddl}</div>
+          <div class="project-name" data-project-field="name" title="双击或右键修改项目名称">${escapeHtml(project.name)}</div>
+          <div class="project-ddl" data-project-field="ddl" title="双击或右键修改 DDL">${ddl}</div>
           <div class="project-card-actions">
             <button class="icon-button" type="button" data-project-action="delete" title="删除项目" aria-label="删除项目">×</button>
           </div>
@@ -1676,13 +1695,69 @@
       render();
     }
 
-    function openTaskFromRow(event) {
+    function editTaskField(event) {
+      if (event.target.closest("button")) return;
+      const fieldEl = event.target.closest("[data-task-field]");
       const row = event.target.closest("tr[data-task-id]");
-      if (!row || event.target.closest("button")) return;
+      if (!fieldEl || !row) return;
       const task = state.tasks.find((item) => item.id === row.dataset.taskId);
       if (!task || task.done) return;
       event.preventDefault();
-      openTaskDialog(task);
+
+      const field = fieldEl.dataset.taskField;
+      const configByField = {
+        text: { type: "text", value: task.text || "", save: (value) => { task.text = value.trim() || "未命名"; } },
+        projectId: { type: "select", value: task.projectId || "", save: (value) => { task.projectId = value; } },
+        plannedStart: { type: "time", value: task.plannedStart || "", save: (value) => { task.plannedStart = value; task.manualOrder = false; } },
+        targetDate: { type: "date", value: task.targetDate || formatDate(new Date()), save: (value) => { task.targetDate = value || formatDate(new Date()); } }
+      };
+      const config = configByField[field];
+      if (!config) return;
+
+      startInlineEdit(fieldEl, config, () => {
+        saveData();
+        render();
+      });
+    }
+
+    function startInlineEdit(fieldEl, config, afterSave) {
+      if (fieldEl.querySelector("input, select")) return;
+      const editor = document.createElement(config.type === "select" ? "select" : "input");
+      editor.className = config.type === "select" ? "inline-select" : "inline-input";
+      if (config.type !== "select") editor.type = config.type;
+      if (config.type === "time") {
+        editor.step = 300;
+        editor.className = "inline-time";
+      }
+      if (config.type === "date") editor.className = "inline-date";
+      if (config.type === "select") editor.innerHTML = projectOptionsHtml(config.value);
+      editor.value = config.value || "";
+
+      let finished = false;
+      const finish = (shouldSave) => {
+        if (finished) return;
+        finished = true;
+        if (shouldSave) {
+          config.save(editor.value);
+          afterSave();
+        } else {
+          render();
+          if (els.projectListDialog.open) renderProjectListDialog();
+        }
+      };
+
+      editor.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") finish(true);
+        if (event.key === "Escape") finish(false);
+      });
+      editor.addEventListener("blur", () => finish(true));
+      if (["select", "date", "time"].includes(config.type)) {
+        editor.addEventListener("change", () => finish(true));
+      }
+
+      fieldEl.replaceChildren(editor);
+      editor.focus();
+      if (editor.select && config.type === "text") editor.select();
     }
 
     function resetDefaultSort() {
@@ -1795,8 +1870,8 @@
       return `
         <div class="project-card has-ddl ${countdown.variant}" data-project-id="${project.id}">
           <div class="project-content">
-            <div class="project-name" title="${escapeHtml(project.name)}">${escapeHtml(project.name)}</div>
-            <div class="project-countdown">
+            <div class="project-name" data-project-field="name" title="双击或右键修改项目名称">${escapeHtml(project.name)}</div>
+            <div class="project-countdown" data-project-field="ddl" title="双击或右键修改 DDL">
               <div class="days-left">${countdown.days}<small>天</small></div>
               <div class="countdown-text">距离 ${friendlyDate(project.ddl)}</div>
             </div>
@@ -1811,7 +1886,7 @@
     function otherProjectCard(count) {
       return `
         <button class="project-card other-card" type="button" data-open-project-list>
-          <span>其他</span>
+          <span>未计划</span>
           <span class="other-count">${count} 个未设置 DDL 的项目</span>
         </button>
       `;
@@ -1907,14 +1982,14 @@
         <tr class="task-row ${rowClass}" draggable="true" data-task-id="${task.id}">
           <td><span class="drag-handle">↕</span></td>
           <td>
-            <div class="task-title" title="${task.done ? "" : "双击或右键修改 Todo"}">${escapeHtml(text)}</div>
+            <div class="task-title" data-task-field="text" title="${task.done ? "" : "双击或右键修改 Todo"}">${escapeHtml(text)}</div>
             ${note}
           </td>
           <td>
-            <div class="chip" title="${escapeHtml(project.name)}">${escapeHtml(project.name)}</div>
+            <div class="chip" data-task-field="projectId" title="${task.done ? escapeHtml(project.name) : "双击或右键修改项目"}">${escapeHtml(project.name)}</div>
           </td>
-          <td><span class="planned-time ${task.plannedStart ? "" : "empty-time"}">${formatPlannedTime(task.plannedStart)}</span></td>
-          <td>${friendlyDate(task.targetDate)}</td>
+          <td><span class="planned-time ${task.plannedStart ? "" : "empty-time"}" data-task-field="plannedStart" title="${task.done ? "" : "双击或右键修改计划开始时间"}">${formatPlannedTime(task.plannedStart)}</span></td>
+          <td><span data-task-field="targetDate" title="${task.done ? "" : "双击或右键修改日期"}">${friendlyDate(task.targetDate)}</span></td>
           <td><span class="status">${status}</span></td>
           <td>${completedDate}</td>
           <td>
