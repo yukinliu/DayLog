@@ -793,6 +793,48 @@
       white-space: nowrap;
     }
 
+    .rating-options {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      border: 0;
+      padding: 0;
+      margin: 0;
+    }
+
+    .rating-options legend {
+      margin-bottom: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .rating-options label {
+      display: grid;
+      place-items: center;
+      min-height: 42px;
+      padding: 0 10px;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fffdf7;
+      font-weight: 720;
+      cursor: pointer;
+    }
+
+    .rating-options input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .rating-options label:has(input:checked) {
+      color: var(--accent);
+      border-color: rgba(180, 75, 43, 0.42);
+      background: #fff0e8;
+      box-shadow: inset 0 0 0 1px rgba(180, 75, 43, 0.1);
+    }
+
     .pie-layout {
       display: grid;
       grid-template-columns: 240px minmax(0, 1fr);
@@ -1052,6 +1094,12 @@
           </div>
         </div>
       </div>
+      <fieldset class="rating-options">
+        <legend>完成评价</legend>
+        <label><input type="radio" name="completionRating" value="baseline">🌱 保底</label>
+        <label><input type="radio" name="completionRating" value="partial" checked>◐ 部分</label>
+        <label><input type="radio" name="completionRating" value="full">🏁 全部</label>
+      </fieldset>
       <div class="dialog-actions">
         <button class="ghost" type="button" id="completeCancelBtn">取消</button>
         <button class="primary" type="submit">完成</button>
@@ -1147,6 +1195,7 @@
       completeForm: document.querySelector("#completeForm"),
       completeTaskName: document.querySelector("#completeTaskName"),
       completeMinutes: document.querySelector("#completeMinutes"),
+      completeRating: document.querySelectorAll('input[name="completionRating"]'),
       completeCancelBtn: document.querySelector("#completeCancelBtn"),
       timePieDialog: document.querySelector("#timePieDialog"),
       timePieTitle: document.querySelector("#timePieTitle"),
@@ -1261,12 +1310,7 @@
       }
 
       if (button.dataset.projectAction === "delete") {
-        state.tasks.forEach((task) => {
-          if (task.projectId === project.id) task.projectId = "";
-        });
-        state.projects = state.projects.filter((item) => item.id !== project.id);
-        saveData();
-        render();
+        deleteProject(project);
       }
     }
 
@@ -1344,14 +1388,24 @@
       }
 
       if (button.dataset.projectAction === "delete") {
-        state.tasks.forEach((task) => {
-          if (task.projectId === project.id) task.projectId = "";
-        });
-        state.projects = state.projects.filter((item) => item.id !== project.id);
-        saveData();
-        render();
-        renderProjectListDialog();
+        deleteProject(project, true);
       }
+    }
+
+    function deleteProject(project, refreshList = false) {
+      const linkedTasks = state.tasks.filter((task) => task.projectId === project.id);
+      const completedCount = linkedTasks.filter((task) => task.done).length;
+      if (completedCount) {
+        const ok = window.confirm(`项目“${project.name}”下有 ${completedCount} 条已完成 todo。删除项目后，这些 todo 不会被删除，但会归入“未归类”。确认删除项目吗？`);
+        if (!ok) return;
+      }
+      state.tasks.forEach((task) => {
+        if (task.projectId === project.id) task.projectId = "";
+      });
+      state.projects = state.projects.filter((item) => item.id !== project.id);
+      saveData();
+      render();
+      if (refreshList) renderProjectListDialog();
     }
 
     function handleTaskClick(event) {
@@ -1372,6 +1426,7 @@
           task.completedAt = null;
           task.completedDate = "";
           task.durationMinutes = 0;
+          task.completionRating = "";
         } else {
           openCompletionDialog(task);
           return;
@@ -1404,6 +1459,7 @@
         completedAt: null,
         completedDate: "",
         durationMinutes: 0,
+        completionRating: "",
         order: nextOrder()
       };
       state.tasks.unshift(task);
@@ -1440,6 +1496,9 @@
       state.completingTaskId = task.id;
       els.completeTaskName.value = task.text || "空白 Todo";
       els.completeMinutes.value = task.durationMinutes || "";
+      els.completeRating.forEach((input) => {
+        input.checked = input.value === (task.completionRating || "partial");
+      });
       els.completeDialog.showModal();
       els.completeMinutes.focus();
     }
@@ -1452,6 +1511,7 @@
         task.completedAt = new Date().toISOString();
         task.completedDate = formatDate(new Date());
         task.durationMinutes = Math.max(0, Number.parseInt(els.completeMinutes.value || "0", 10) || 0);
+        task.completionRating = [...els.completeRating].find((input) => input.checked)?.value || "partial";
       }
       state.completingTaskId = null;
       els.completeDialog.close();
@@ -1636,8 +1696,9 @@
       const rowClass = task.done ? "done" : "pending";
       const text = task.text || "空白 Todo";
       const note = task.note ? `<div class="task-note">${escapeHtml(task.note)}</div>` : "";
+      const rating = getCompletionRating(task.completionRating);
       const completedDate = task.completedDate
-        ? `${friendlyDate(task.completedDate)}${task.durationMinutes ? ` · ${formatDuration(task.durationMinutes)}` : ""}`
+        ? `${friendlyDate(task.completedDate)}${task.durationMinutes ? ` · ${formatDuration(task.durationMinutes)}` : ""}${rating ? ` · ${rating.emoji}` : ""}`
         : "未完成";
 
       return `
@@ -1792,6 +1853,7 @@
         task.completedDate = task.targetDate;
         task.completedAt = `${task.targetDate}T23:59:59`;
         task.durationMinutes = task.durationMinutes || 0;
+        task.completionRating = task.completionRating || "";
       }
       state.reviewIndex += 1;
       renderReview();
@@ -1935,6 +1997,7 @@
         completedAt: task.completedAt || null,
         completedDate: task.completedDate || (done && task.completedAt ? formatDate(task.completedAt) : ""),
         durationMinutes: Math.max(0, Number.parseInt(task.durationMinutes || "0", 10) || 0),
+        completionRating: task.completionRating || "",
         order: task.order || 9999
       };
     }
@@ -1947,6 +2010,15 @@
         ddl: project.ddl || "",
         createdAt: project.createdAt || new Date().toISOString()
       };
+    }
+
+    function getCompletionRating(value) {
+      const ratings = {
+        baseline: { label: "保底", emoji: "🌱" },
+        partial: { label: "部分", emoji: "◐" },
+        full: { label: "全部", emoji: "🏁" }
+      };
+      return ratings[value] || null;
     }
 
     function sumMinutes(tasks) {
