@@ -542,33 +542,38 @@
 
     .actions {
       display: flex;
-      gap: 7px;
+      gap: 5px;
       justify-content: flex-end;
-      min-width: 176px;
+      min-width: 132px;
     }
 
     .icon-button {
-      width: 38px;
-      min-width: 38px;
+      width: 34px;
+      min-width: 34px;
+      min-height: 34px;
       padding: 0;
-      font-size: 17px;
+      font-size: 15px;
       line-height: 1;
     }
 
     .action-complete {
+      width: 34px;
+      min-width: 34px;
+      min-height: 34px;
       color: #fffaf0;
       background: var(--accent);
-      box-shadow: 0 8px 16px rgba(180, 75, 43, 0.14);
+      box-shadow: 0 6px 12px rgba(180, 75, 43, 0.12);
     }
 
     .action-secondary,
     .action-danger {
-      width: 34px;
-      min-width: 34px;
-      min-height: 34px;
-      color: rgba(180, 75, 43, 0.72);
-      background: rgba(247, 221, 197, 0.5);
+      width: 30px;
+      min-width: 30px;
+      min-height: 30px;
+      color: rgba(180, 75, 43, 0.58);
+      background: rgba(247, 221, 197, 0.42);
       box-shadow: none;
+      font-size: 14px;
     }
 
     .action-secondary:hover,
@@ -960,7 +965,7 @@
             <tr>
               <th>排序</th>
               <th>Todo</th>
-              <th>项目 / DDL</th>
+              <th>项目</th>
               <th>日期</th>
               <th>状态</th>
               <th>完成记录</th>
@@ -1631,7 +1636,6 @@
       const rowClass = task.done ? "done" : "pending";
       const text = task.text || "空白 Todo";
       const note = task.note ? `<div class="task-note">${escapeHtml(task.note)}</div>` : "";
-      const ddl = project.ddl ? `<div class="ddl-small">DDL ${friendlyDate(project.ddl)}</div>` : "";
       const completedDate = task.completedDate
         ? `${friendlyDate(task.completedDate)}${task.durationMinutes ? ` · ${formatDuration(task.durationMinutes)}` : ""}`
         : "未完成";
@@ -1645,7 +1649,6 @@
           </td>
           <td>
             <div class="chip" title="${escapeHtml(project.name)}">${escapeHtml(project.name)}</div>
-            ${ddl}
           </td>
           <td>${friendlyDate(task.targetDate)}</td>
           <td><span class="status">${status}</span></td>
