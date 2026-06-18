@@ -601,9 +601,14 @@
     }
 
     .calendar-project.unassigned {
-      background: #f2eadb;
-      border-style: dashed;
-      color: #7a6148;
+      background: rgba(242, 234, 219, 0.45);
+      border-color: rgba(138, 104, 79, 0.22);
+      color: rgba(122, 97, 72, 0.72);
+      opacity: 0.72;
+    }
+
+    .calendar-project.unassigned strong {
+      font-weight: 620;
     }
 
     .calendar-project strong {
@@ -1562,7 +1567,7 @@
       const className = group.project.id ? "calendar-project" : "calendar-project unassigned";
       return `
         <div class="${className}">
-          <strong title="${escapeHtml(group.project.name)}">${escapeHtml(group.project.name)}</strong>
+          <strong title="${escapeHtml(group.project.name)}">${escapeHtml(group.project.name)}${group.project.id ? "" : " · 待整理"}</strong>
           <span>${group.tasks.length} 条 todo，完成 ${done} 条</span>
           <span>累计时间：${formatDuration(minutes)}</span>
         </div>
