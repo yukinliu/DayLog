@@ -429,7 +429,7 @@
 
     table {
       width: 100%;
-      min-width: 960px;
+      min-width: 1040px;
       border-collapse: collapse;
     }
 
@@ -451,6 +451,26 @@
     .add-row td {
       padding: 10px 14px;
       background: #fffdf7;
+    }
+
+    .time-section-row td {
+      padding: 7px 14px 5px;
+      color: rgba(138, 104, 79, 0.72);
+      background: linear-gradient(90deg, rgba(227, 200, 155, 0.28), transparent 58%);
+      border-bottom: 1px solid rgba(227, 200, 155, 0.42);
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .planned-time {
+      color: var(--muted);
+      font-weight: 720;
+      white-space: nowrap;
+    }
+
+    .planned-time.empty-time {
+      opacity: 0.58;
+      font-weight: 620;
     }
 
     .add-todo {
@@ -1008,6 +1028,7 @@
               <th>排序</th>
               <th>Todo</th>
               <th>项目</th>
+              <th>计划开始</th>
               <th>日期</th>
               <th>状态</th>
               <th>完成记录</th>
@@ -1056,6 +1077,10 @@
         <div class="field">
           <label for="taskProject">归属项目</label>
           <select id="taskProject"></select>
+        </div>
+        <div class="field">
+          <label for="taskStartTime">计划开始时间</label>
+          <input id="taskStartTime" type="time" step="300">
         </div>
         <input id="taskNote" type="text" placeholder="备注，可选">
       </div>
@@ -1189,6 +1214,7 @@
       taskDialogTitle: document.querySelector("#taskDialogTitle"),
       taskText: document.querySelector("#taskText"),
       taskProject: document.querySelector("#taskProject"),
+      taskStartTime: document.querySelector("#taskStartTime"),
       taskNote: document.querySelector("#taskNote"),
       taskCancelBtn: document.querySelector("#taskCancelBtn"),
       completeDialog: document.querySelector("#completeDialog"),
@@ -1453,6 +1479,7 @@
         text: "",
         note: "",
         projectId: "",
+        plannedStart: "",
         targetDate: state.viewMode === "all" ? formatDate(new Date()) : state.selectedDate,
         done: false,
         createdAt: new Date().toISOString(),
@@ -1460,6 +1487,7 @@
         completedDate: "",
         durationMinutes: 0,
         completionRating: "",
+        manualOrder: false,
         order: nextOrder()
       };
       state.tasks.unshift(task);
@@ -1472,6 +1500,7 @@
       state.editingTaskId = task.id;
       els.taskDialogTitle.textContent = task.text ? "修改 Todo" : "完善 Todo";
       els.taskText.value = task.text;
+      els.taskStartTime.value = task.plannedStart || "";
       els.taskNote.value = task.note || "";
       renderProjectOptions(els.taskProject, task.projectId || "");
       els.taskDialog.showModal();
@@ -1485,6 +1514,8 @@
         task.text = els.taskText.value.trim();
         task.note = els.taskNote.value.trim();
         task.projectId = els.taskProject.value || "";
+        task.plannedStart = els.taskStartTime.value || "";
+        if (!task.manualOrder) task.order = nextOrder();
       }
       state.editingTaskId = null;
       els.taskDialog.close();
@@ -1559,6 +1590,7 @@
       visible.splice(targetIndex, 0, source);
       visible.forEach((task, index) => {
         task.order = index + 1;
+        task.manualOrder = true;
       });
     }
 
@@ -1665,7 +1697,7 @@
       els.doneRate.textContent = total ? `${Math.round((done / total) * 100)}%` : "0%";
       els.focusTime.textContent = formatDuration(sumMinutes(visibleTasks));
 
-      els.taskBody.innerHTML = addTaskRow() + visibleTasks.map(taskRow).join("");
+      els.taskBody.innerHTML = addTaskRow() + renderTaskRows(visibleTasks);
       els.emptyState.hidden = visibleTasks.length > 0;
 
       const hiddenCount = getHiddenOverdueCount();
@@ -1678,10 +1710,31 @@
       }
     }
 
+    function renderTaskRows(tasks) {
+      let currentSection = "";
+      return tasks.map((task) => {
+        const section = getTimeSection(task.plannedStart);
+        const divider = section && section !== currentSection
+          ? timeSectionRow(section)
+          : "";
+        if (section) currentSection = section;
+        return divider + taskRow(task);
+      }).join("");
+    }
+
+    function timeSectionRow(section) {
+      return `<tr class="time-section-row"><td colspan="8">${section}</td></tr>`;
+    }
+
+    function getTimeSection(time) {
+      if (!time) return "";
+      return time < "12:00" ? "上午" : "下午";
+    }
+
     function addTaskRow() {
       return `
         <tr class="add-row">
-          <td colspan="7">
+          <td colspan="8">
             <button class="add-todo" type="button" data-add-task title="添加空白 todo" aria-label="添加空白 todo">+</button>
           </td>
         </tr>
@@ -1711,6 +1764,7 @@
           <td>
             <div class="chip" title="${escapeHtml(project.name)}">${escapeHtml(project.name)}</div>
           </td>
+          <td><span class="planned-time ${task.plannedStart ? "" : "empty-time"}">${formatPlannedTime(task.plannedStart)}</span></td>
           <td>${friendlyDate(task.targetDate)}</td>
           <td><span class="status">${status}</span></td>
           <td>${completedDate}</td>
@@ -1871,6 +1925,13 @@
       if (state.viewMode === "all" && a.targetDate !== b.targetDate) {
         return b.targetDate.localeCompare(a.targetDate);
       }
+      if (a.manualOrder && b.manualOrder) {
+        return (a.order || 0) - (b.order || 0) || new Date(b.createdAt) - new Date(a.createdAt);
+      }
+      if (a.manualOrder !== b.manualOrder) return a.manualOrder ? -1 : 1;
+      const aTime = a.plannedStart || "99:99";
+      const bTime = b.plannedStart || "99:99";
+      if (aTime !== bTime) return aTime.localeCompare(bTime);
       return (a.order || 0) - (b.order || 0) || new Date(b.createdAt) - new Date(a.createdAt);
     }
 
@@ -1991,6 +2052,7 @@
         text: task.text || "",
         note: task.note || "",
         projectId: task.projectId || "",
+        plannedStart: task.plannedStart || "",
         targetDate: task.targetDate || formatDate(new Date()),
         done,
         createdAt: task.createdAt || new Date().toISOString(),
@@ -1998,6 +2060,7 @@
         completedDate: task.completedDate || (done && task.completedAt ? formatDate(task.completedAt) : ""),
         durationMinutes: Math.max(0, Number.parseInt(task.durationMinutes || "0", 10) || 0),
         completionRating: task.completionRating || "",
+        manualOrder: Boolean(task.manualOrder),
         order: task.order || 9999
       };
     }
@@ -2010,6 +2073,12 @@
         ddl: project.ddl || "",
         createdAt: project.createdAt || new Date().toISOString()
       };
+    }
+
+    function formatPlannedTime(time) {
+      if (!time) return "未安排";
+      const [hour, minute] = time.split(":");
+      return `${hour}:${minute}`;
     }
 
     function getCompletionRating(value) {
