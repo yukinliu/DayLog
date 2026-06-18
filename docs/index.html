@@ -333,6 +333,23 @@
       box-shadow: 0 8px 18px rgba(159, 103, 24, 0.14);
     }
 
+    .project-card.waiting-project {
+      background:
+        linear-gradient(135deg, rgba(255, 250, 240, 0.96), rgba(255, 246, 226, 0.9)),
+        #fff8e8;
+      border-color: rgba(185, 126, 31, 0.42);
+    }
+
+    .project-card.waiting-project::before {
+      background: linear-gradient(180deg, #b97e1f, #e1b960);
+    }
+
+    .project-card.waiting-project .days-left {
+      color: rgba(95, 64, 31, 0.74);
+      background: rgba(243, 207, 131, 0.52);
+      box-shadow: none;
+    }
+
     .project-card.due-soon .days-left {
       background: linear-gradient(135deg, #b6402a, #d36a32);
     }
@@ -508,9 +525,34 @@
 
     table {
       width: 100%;
-      min-width: 1040px;
+      min-width: 1080px;
+      table-layout: fixed;
       border-collapse: collapse;
     }
+
+    th:nth-child(1),
+    td:nth-child(1) { width: 58px; }
+
+    th:nth-child(2),
+    td:nth-child(2) { width: 24%; }
+
+    th:nth-child(3),
+    td:nth-child(3) { width: 16%; }
+
+    th:nth-child(4),
+    td:nth-child(4) { width: 118px; }
+
+    th:nth-child(5),
+    td:nth-child(5) { width: 128px; }
+
+    th:nth-child(6),
+    td:nth-child(6) { width: 110px; }
+
+    th:nth-child(7),
+    td:nth-child(7) { width: 210px; }
+
+    th:nth-child(8),
+    td:nth-child(8) { width: 118px; }
 
     th,
     td {
@@ -1442,7 +1484,7 @@
       const field = fieldEl.dataset.projectField;
       const config = field === "ddl"
         ? { type: "date", value: project.ddl || "", save: (value) => { project.ddl = value; } }
-        : { type: "text", value: project.name, save: (value) => { project.name = value.trim() || "未命名项目"; } };
+        : { type: "text", value: project.name, save: (value) => { project.name = value.trim() || "未命名"; } };
 
       startInlineEdit(fieldEl, config, () => {
         saveData();
@@ -1454,7 +1496,7 @@
     function createDefaultProject() {
       const project = {
         id: crypto.randomUUID ? crypto.randomUUID() : `project-${Date.now()}`,
-        name: "未命名项目",
+        name: "未命名",
         ddl: "",
         createdAt: new Date().toISOString()
       };
@@ -1475,7 +1517,7 @@
 
     function saveProject(event) {
       event.preventDefault();
-      const name = els.projectName.value.trim() || "未命名项目";
+      const name = els.projectName.value.trim() || "未命名";
       const ddl = els.projectDdl.value;
 
       if (state.editingProjectId) {
@@ -1506,22 +1548,23 @@
     }
 
     function renderProjectListDialog() {
+      const unnamedProjects = state.projects.filter(isUnnamedProject).sort(compareProjects);
       const groups = getProjectListGroups();
       els.projectListBody.innerHTML = state.projects.length
-        ? groups.map(projectListGroup).join("")
+        ? unnamedProjects.map(projectListItem).join("") + groups.map(projectListGroup).join("")
         : `<div class="empty">还没有项目。</div>`;
     }
 
     function getProjectListGroups() {
       const today = formatDate(new Date());
       const completed = state.projects
-        .filter((project) => project.ddl && project.ddl < today)
+        .filter((project) => !isUnnamedProject(project) && project.ddl && project.ddl < today)
         .sort(compareProjects);
       const active = state.projects
-        .filter((project) => project.ddl && project.ddl >= today)
+        .filter((project) => !isUnnamedProject(project) && project.ddl && project.ddl >= today)
         .sort(compareProjects);
       const unplanned = state.projects
-        .filter((project) => !project.ddl)
+        .filter((project) => !isUnnamedProject(project) && !project.ddl)
         .sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
       return [
         { title: "已完成", hint: "DDL 已经过了", projects: completed },
@@ -1540,7 +1583,7 @@
     }
 
     function projectListItem(project) {
-      const ddl = project.ddl ? friendlyDate(project.ddl) : "未设置 DDL";
+      const ddl = project.ddl ? friendlyDate(project.ddl) : (isUnnamedProject(project) ? "永久" : "未设置 DDL");
       return `
         <div class="project-list-item" data-project-id="${project.id}" title="双击或右键修改项目">
           <div class="project-name" data-project-field="name" title="双击或右键修改项目名称">${escapeHtml(project.name)}</div>
@@ -1701,10 +1744,11 @@
       const row = event.target.closest("tr[data-task-id]");
       if (!fieldEl || !row) return;
       const task = state.tasks.find((item) => item.id === row.dataset.taskId);
-      if (!task || task.done) return;
+      if (!task) return;
+      const field = fieldEl.dataset.taskField;
+      if (task.done && field !== "projectId") return;
       event.preventDefault();
 
-      const field = fieldEl.dataset.taskField;
       const configByField = {
         text: { type: "text", value: task.text || "", save: (value) => { task.text = value.trim() || "未命名"; } },
         projectId: { type: "select", value: task.projectId || "", save: (value) => { task.projectId = value; } },
@@ -1855,25 +1899,32 @@
     }
 
     function renderProjects() {
-      const ddlProjects = [...state.projects]
-        .filter((project) => project.ddl)
+      const unnamedProjects = [...state.projects]
+        .filter(isUnnamedProject)
         .sort(compareProjects);
-      const otherCount = state.projects.filter((project) => !project.ddl).length;
-      els.projectHint.textContent = ddlProjects.length + (otherCount ? 1 : 0) > 3 ? "左右滑动查看更多" : "";
-      els.projectRail.innerHTML = ddlProjects.map(projectCard).join("")
+      const ddlProjects = [...state.projects]
+        .filter((project) => !isUnnamedProject(project) && project.ddl)
+        .sort(compareProjects);
+      const otherCount = state.projects.filter((project) => !isUnnamedProject(project) && !project.ddl).length;
+      const cardCount = unnamedProjects.length + ddlProjects.length + (otherCount ? 1 : 0);
+      els.projectHint.textContent = cardCount > 3 ? "左右滑动查看更多" : "";
+      els.projectRail.innerHTML = unnamedProjects.map(projectCard).join("")
+        + ddlProjects.map(projectCard).join("")
         + (otherCount ? otherProjectCard(otherCount) : "")
         + addProjectCard();
     }
 
     function projectCard(project) {
-      const countdown = getDdlCountdown(project.ddl);
+      const waiting = isUnnamedProject(project);
+      const countdown = project.ddl ? getDdlCountdown(project.ddl) : { days: "", variant: "waiting-project" };
+      const dateText = project.ddl ? friendlyDate(project.ddl) : "永久";
       return `
-        <div class="project-card has-ddl ${countdown.variant}" data-project-id="${project.id}">
+        <div class="project-card has-ddl ${waiting ? "waiting-project" : countdown.variant}" data-project-id="${project.id}">
           <div class="project-content">
             <div class="project-name" data-project-field="name" title="双击或右键修改项目名称">${escapeHtml(project.name)}</div>
             <div class="project-countdown" data-project-field="ddl" title="双击或右键修改 DDL">
-              <div class="days-left">${countdown.days}<small>天</small></div>
-              <div class="countdown-text">距离 ${friendlyDate(project.ddl)}</div>
+              <div class="days-left">${countdown.days ? `${countdown.days}<small>天</small>` : ""}</div>
+              <div class="countdown-text">距离 ${dateText}</div>
             </div>
           </div>
           <div class="project-card-actions">
@@ -1986,7 +2037,7 @@
             ${note}
           </td>
           <td>
-            <div class="chip" data-task-field="projectId" title="${task.done ? escapeHtml(project.name) : "双击或右键修改项目"}">${escapeHtml(project.name)}</div>
+            <div class="chip" data-task-field="projectId" title="双击或右键修改项目">${escapeHtml(project.name)}</div>
           </td>
           <td><span class="planned-time ${task.plannedStart ? "" : "empty-time"}" data-task-field="plannedStart" title="${task.done ? "" : "双击或右键修改计划开始时间"}">${formatPlannedTime(task.plannedStart)}</span></td>
           <td><span data-task-field="targetDate" title="${task.done ? "" : "双击或右键修改日期"}">${friendlyDate(task.targetDate)}</span></td>
@@ -2163,11 +2214,19 @@
     }
 
     function compareProjects(a, b) {
+      const aUnnamed = isUnnamedProject(a);
+      const bUnnamed = isUnnamedProject(b);
+      if (aUnnamed !== bUnnamed) return aUnnamed ? -1 : 1;
       const aHasDdl = Boolean(a.ddl);
       const bHasDdl = Boolean(b.ddl);
       if (aHasDdl !== bHasDdl) return aHasDdl ? -1 : 1;
       if (aHasDdl && a.ddl !== b.ddl) return a.ddl.localeCompare(b.ddl);
       return a.name.localeCompare(b.name, "zh-CN");
+    }
+
+    function isUnnamedProject(project) {
+      const name = (project.name || "").trim();
+      return name === "未命名" || name === "未命名项目";
     }
 
     function findProject(id) {
@@ -2294,9 +2353,10 @@
 
     function normalizeProject(project) {
       if (!project || !project.name) return null;
+      const name = project.name === "未命名项目" ? "未命名" : project.name;
       return {
         id: project.id || (crypto.randomUUID ? crypto.randomUUID() : `project-${Date.now()}`),
-        name: project.name,
+        name,
         ddl: project.ddl || "",
         createdAt: project.createdAt || new Date().toISOString()
       };
