@@ -540,19 +540,19 @@
 
     table {
       width: 100%;
-      min-width: 1080px;
+      min-width: 1180px;
       table-layout: fixed;
       border-collapse: collapse;
     }
 
     th:nth-child(1),
-    td:nth-child(1) { width: 58px; }
+    td:nth-child(1) { width: 50px; }
 
     th:nth-child(2),
-    td:nth-child(2) { width: 24%; }
+    td:nth-child(2) { width: 220px; }
 
     th:nth-child(3),
-    td:nth-child(3) { width: 16%; }
+    td:nth-child(3) { width: 150px; }
 
     th:nth-child(4),
     td:nth-child(4) { width: 118px; }
@@ -564,10 +564,10 @@
     td:nth-child(6) { width: 110px; }
 
     th:nth-child(7),
-    td:nth-child(7) { width: 210px; }
+    td:nth-child(7) { width: 300px; }
 
     th:nth-child(8),
-    td:nth-child(8) { width: 144px; }
+    td:nth-child(8) { width: 104px; }
 
     th,
     td {
@@ -575,6 +575,7 @@
       text-align: left;
       border-bottom: 1px solid var(--line);
       vertical-align: middle;
+      white-space: nowrap;
     }
 
     th {
@@ -650,18 +651,24 @@
     }
 
     .task-title {
-      min-width: 240px;
+      width: 100%;
+      min-width: 0;
       font-weight: 720;
-      line-height: 1.45;
-      word-break: break-word;
+      line-height: 1.35;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .task-note {
-      margin-top: 5px;
-      color: inherit;
-      opacity: 0.82;
-      font-size: 13px;
-      word-break: break-word;
+      display: none;
+    }
+
+    .completion-record {
+      display: block;
+      width: 100%;
+      overflow: visible;
+      white-space: nowrap;
     }
 
     .chip,
@@ -736,6 +743,30 @@
     .action-secondary:hover,
     .action-danger:hover {
       background: rgba(247, 221, 197, 0.75);
+    }
+
+    .hover-tooltip {
+      position: fixed;
+      z-index: 9999;
+      max-width: min(420px, calc(100vw - 32px));
+      padding: 9px 11px;
+      color: #fffaf0;
+      background: rgba(57, 36, 26, 0.94);
+      border: 1px solid rgba(255, 245, 226, 0.18);
+      border-radius: 8px;
+      box-shadow: 0 12px 26px rgba(57, 36, 26, 0.22);
+      font-size: 13px;
+      font-weight: 650;
+      line-height: 1.45;
+      pointer-events: none;
+      opacity: 0;
+      transform: translateY(4px);
+      transition: opacity 140ms ease, transform 140ms ease;
+    }
+
+    .hover-tooltip.visible {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     .hidden-note {
@@ -1192,6 +1223,8 @@
     </section>
   </main>
 
+  <div class="hover-tooltip" id="hoverTooltip" hidden></div>
+
   <dialog id="projectDialog">
     <form class="dialog-body" id="projectForm" method="dialog">
       <h2 id="projectDialogTitle">添加项目</h2>
@@ -1340,6 +1373,7 @@
       taskBody: document.querySelector("#taskBody"),
       emptyState: document.querySelector("#emptyState"),
       hiddenNote: document.querySelector("#hiddenNote"),
+      hoverTooltip: document.querySelector("#hoverTooltip"),
       projectDialog: document.querySelector("#projectDialog"),
       projectForm: document.querySelector("#projectForm"),
       projectDialogTitle: document.querySelector("#projectDialogTitle"),
@@ -1405,6 +1439,9 @@
       });
 
       els.taskBody.addEventListener("click", handleTaskClick);
+      els.taskBody.addEventListener("mouseover", scheduleHoverTooltip);
+      els.taskBody.addEventListener("mousemove", moveHoverTooltip);
+      els.taskBody.addEventListener("mouseout", hideHoverTooltip);
       els.taskBody.addEventListener("dblclick", editTaskField);
       els.taskBody.addEventListener("contextmenu", editTaskField);
       els.resetSortBtn.addEventListener("click", resetDefaultSort);
@@ -1824,6 +1861,49 @@
       render();
     }
 
+    let tooltipTimer = null;
+    let tooltipTarget = null;
+
+    function scheduleHoverTooltip(event) {
+      const target = event.target.closest("[data-tooltip]");
+      if (!target || !els.taskBody.contains(target)) return;
+      tooltipTarget = target;
+      clearTimeout(tooltipTimer);
+      tooltipTimer = setTimeout(() => {
+        if (tooltipTarget !== target) return;
+        els.hoverTooltip.textContent = target.dataset.tooltip;
+        els.hoverTooltip.hidden = false;
+        positionHoverTooltip(event);
+        requestAnimationFrame(() => els.hoverTooltip.classList.add("visible"));
+      }, 700);
+    }
+
+    function moveHoverTooltip(event) {
+      if (!els.hoverTooltip.hidden) positionHoverTooltip(event);
+    }
+
+    function hideHoverTooltip(event) {
+      const target = event.target.closest("[data-tooltip]");
+      if (!target) return;
+      const related = event.relatedTarget;
+      if (related && target.contains(related)) return;
+      clearTimeout(tooltipTimer);
+      tooltipTarget = null;
+      els.hoverTooltip.classList.remove("visible");
+      els.hoverTooltip.hidden = true;
+    }
+
+    function positionHoverTooltip(event) {
+      const offset = 14;
+      const rect = els.hoverTooltip.getBoundingClientRect();
+      let left = event.clientX + offset;
+      let top = event.clientY + offset;
+      if (left + rect.width > window.innerWidth - 12) left = window.innerWidth - rect.width - 12;
+      if (top + rect.height > window.innerHeight - 12) top = event.clientY - rect.height - offset;
+      els.hoverTooltip.style.left = `${Math.max(12, left)}px`;
+      els.hoverTooltip.style.top = `${Math.max(12, top)}px`;
+    }
+
     function editTaskField(event) {
       if (event.target.closest("button")) return;
       const fieldEl = event.target.closest("[data-task-field]");
@@ -2124,7 +2204,7 @@
         <tr class="task-row ${rowClass}" draggable="true" data-task-id="${task.id}">
           <td><span class="drag-handle">↕</span></td>
           <td>
-            <div class="task-title" data-task-field="text" title="${task.done ? "" : "双击或右键修改 Todo"}">${escapeHtml(text)}</div>
+            <div class="task-title" data-task-field="text" data-tooltip="${escapeHtml(text)}" aria-label="${escapeHtml(text)}">${escapeHtml(text)}</div>
             ${note}
           </td>
           <td>
@@ -2133,7 +2213,7 @@
           <td><span class="planned-time ${task.plannedStart ? "" : "empty-time"}" data-task-field="plannedStart" title="${task.done ? "" : "双击或右键修改计划开始时间"}">${formatPlannedTime(task.plannedStart)}</span></td>
           <td><span data-task-field="targetDate" title="${task.done ? "" : "双击或右键修改日期"}">${friendlyDate(task.targetDate)}</span></td>
           <td><span class="status">${status}</span></td>
-          <td>${completedDate}</td>
+          <td><span class="completion-record">${completedDate}</span></td>
           <td>
             <div class="actions">
               <button class="icon-button ${task.done ? "action-secondary" : "action-complete"}" type="button" data-action="toggle" data-id="${task.id}" title="${actionTitle}" aria-label="${actionTitle}">${actionLabel}</button>
