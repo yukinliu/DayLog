@@ -580,10 +580,10 @@
     td:nth-child(6) { width: 110px; }
 
     th:nth-child(7),
-    td:nth-child(7) { width: 300px; }
+    td:nth-child(7) { width: 270px; }
 
     th:nth-child(8),
-    td:nth-child(8) { width: 104px; }
+    td:nth-child(8) { width: 138px; }
 
     th,
     td {
@@ -723,7 +723,7 @@
       display: flex;
       gap: 7px;
       justify-content: flex-start;
-      min-width: 0;
+      min-width: 82px;
       width: 82px;
     }
 
@@ -2028,7 +2028,10 @@
       const source = state.tasks.find((task) => task.id === state.draggingTaskId);
       const target = state.tasks.find((task) => task.id === row.dataset.taskId);
       if (!source || !target) return false;
-      return getTaskDragSection(source) === getTaskDragSection(target);
+      const sourceSection = getTaskDragSection(source);
+      const targetSection = getTaskDragSection(target);
+      if (sourceSection === "未安排" || targetSection === "未安排") return true;
+      return sourceSection === targetSection;
     }
 
     function getTaskDragSection(task) {
@@ -2251,17 +2254,21 @@
       }
       let currentSection = "";
       return tasks.map((task) => {
-        const section = getTimeSection(task.plannedStart);
-        const divider = section && section !== currentSection
+        const section = getTaskDisplaySection(task);
+        const divider = section !== currentSection
           ? timeSectionRow(section)
           : "";
-        if (section) currentSection = section;
+        currentSection = section;
         return divider + taskRow(task);
       }).join("");
     }
 
     function timeSectionRow(section) {
       return `<tr class="time-section-row"><td colspan="8">${section}</td></tr>`;
+    }
+
+    function getTaskDisplaySection(task) {
+      return getTimeSection(task.plannedStart) || "未安排";
     }
 
     function getTimeSection(time) {
@@ -2467,8 +2474,6 @@
       const aKey = getTaskProjectKey(a);
       const bKey = getTaskProjectKey(b);
       if (aKey !== bKey) {
-        if (aKey === "__unassigned__") return 1;
-        if (bKey === "__unassigned__") return -1;
         const aManual = getProjectManualOrder(aKey, tasks);
         const bManual = getProjectManualOrder(bKey, tasks);
         if (aManual !== null || bManual !== null) {
