@@ -523,6 +523,15 @@
       font-size: 16px;
     }
 
+    .inline-time {
+      width: 126px;
+      min-width: 126px;
+      padding: 6px 10px;
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0;
+    }
+
     .inline-field-wrap {
       min-width: 140px;
     }
@@ -550,7 +559,7 @@
     td:nth-child(1) { width: 50px; }
 
     th:nth-child(2),
-    td:nth-child(2) { width: 118px; }
+    td:nth-child(2) { width: 146px; }
 
     th:nth-child(3),
     td:nth-child(3) { width: 220px; }
@@ -562,7 +571,7 @@
     table.project-table-view td:nth-child(2) { width: 150px; }
 
     table.project-table-view th:nth-child(4),
-    table.project-table-view td:nth-child(4) { width: 118px; }
+    table.project-table-view td:nth-child(4) { width: 146px; }
 
     th:nth-child(5),
     td:nth-child(5) { width: 128px; }
@@ -2008,15 +2017,32 @@
     }
 
     function handleDragOver(event) {
-      if (!event.target.closest("tr[data-task-id]")) return;
+      const row = event.target.closest("tr[data-task-id]");
+      if (!row) return;
       event.preventDefault();
-      event.dataTransfer.dropEffect = "move";
+      event.dataTransfer.dropEffect = canDropOnRow(row) ? "move" : "none";
+    }
+
+    function canDropOnRow(row) {
+      if (state.todoListView === "project") return true;
+      const source = state.tasks.find((task) => task.id === state.draggingTaskId);
+      const target = state.tasks.find((task) => task.id === row.dataset.taskId);
+      if (!source || !target) return false;
+      return getTaskDragSection(source) === getTaskDragSection(target);
+    }
+
+    function getTaskDragSection(task) {
+      return getTimeSection(task.plannedStart) || "未安排";
     }
 
     function handleDrop(event) {
       const row = event.target.closest("tr[data-task-id]");
       if (!row || !state.draggingTaskId || row.dataset.taskId === state.draggingTaskId) return;
       event.preventDefault();
+      if (!canDropOnRow(row)) {
+        handleDragEnd();
+        return;
+      }
       if (state.todoListView === "project") reorderProjectGroups(state.draggingProjectKey, row.dataset.projectKey);
       else reorderVisibleTasks(state.draggingTaskId, row.dataset.taskId);
       saveData();
