@@ -1,0 +1,9 @@
+.DS_Store
+*.app/
+outputs/
+scripts/
+clean-icon.iconset/
+tmp-icon.iconset/
+daily-todo-icon.svg
+daily-todo-icon.svg.png
+daily-todo-table.html

@@ -1,0 +1,1535 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>每日任务表</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f3dfbd;
+      --panel: #fffaf0;
+      --text: #352318;
+      --muted: #8a684f;
+      --line: #e3c89b;
+      --red-bg: #fff0e8;
+      --red-line: #b6402a;
+      --red-text: #8d2d20;
+      --green-bg: #eef4df;
+      --green-line: #4f8a69;
+      --green-text: #2e684e;
+      --accent: #b44b2b;
+      --accent-soft: #f7ddc5;
+      --gold-soft: #fff2c8;
+      --gold: #9f6718;
+      --teal: #2f7f78;
+      --teal-soft: #dceee5;
+      --shadow: 0 14px 34px rgba(83, 48, 22, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 12% 0%, rgba(180, 75, 43, 0.11), transparent 30%),
+        linear-gradient(180deg, #fff4dc, var(--bg));
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+        "Microsoft YaHei", sans-serif;
+      letter-spacing: 0;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1180px, calc(100vw - 28px));
+      margin: 0 auto;
+      padding: 22px 0 40px;
+    }
+
+    .topbar,
+    .ddl-strip,
+    .status-panel,
+    .todo-panel,
+    .calendar-panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(2px);
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: auto minmax(260px, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .segmented {
+      display: inline-grid;
+      grid-template-columns: repeat(2, minmax(84px, 1fr));
+      gap: 4px;
+      padding: 4px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f7e9cf;
+    }
+
+    .segmented button,
+    .ghost,
+    .primary,
+    .icon-button {
+      min-height: 40px;
+      border: 0;
+      border-radius: 7px;
+      transition: transform 140ms ease, background 140ms ease, color 140ms ease;
+    }
+
+    .segmented button {
+      padding: 0 14px;
+      color: var(--muted);
+      background: transparent;
+    }
+
+    .segmented button.active {
+      color: var(--text);
+      background: var(--panel);
+      box-shadow: 0 1px 5px rgba(83, 48, 22, 0.14);
+    }
+
+    .range-control {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .range-control span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    input,
+    select,
+    textarea {
+      min-height: 40px;
+      padding: 9px 11px;
+      color: var(--text);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      background: #fffdf7;
+      outline: none;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 90px;
+      resize: vertical;
+    }
+
+    input:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(180, 75, 43, 0.16);
+    }
+
+    .ghost,
+    .icon-button {
+      color: var(--accent);
+      background: var(--accent-soft);
+    }
+
+    .ghost {
+      padding: 0 13px;
+    }
+
+    .primary {
+      padding: 0 16px;
+      color: #fff;
+      background: var(--accent);
+      font-weight: 720;
+    }
+
+    .segmented button:hover,
+    .ghost:hover,
+    .primary:hover,
+    .icon-button:hover {
+      transform: translateY(-1px);
+    }
+
+    .ddl-strip {
+      display: grid;
+      gap: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .project-rail {
+      display: grid;
+      grid-auto-flow: column;
+      grid-auto-columns: minmax(190px, calc((100% - 36px) / 4));
+      gap: 12px;
+      overflow-x: auto;
+      overscroll-behavior-x: contain;
+      padding-bottom: 2px;
+      scroll-snap-type: x proximity;
+    }
+
+    .project-card {
+      display: grid;
+      align-content: space-between;
+      min-height: 112px;
+      padding: 13px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff7e8;
+      scroll-snap-align: start;
+    }
+
+    .project-card.has-ddl {
+      background: var(--gold-soft);
+      border-color: #d9aa4e;
+    }
+
+    .project-card.add-card {
+      place-items: center;
+      color: var(--teal);
+      background: var(--teal-soft);
+      border-style: dashed;
+      font-weight: 760;
+    }
+
+    .project-name {
+      min-width: 0;
+      font-size: 16px;
+      font-weight: 760;
+      line-height: 1.25;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .project-ddl {
+      margin-top: 8px;
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .project-card-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .project-list {
+      display: grid;
+      gap: 8px;
+      max-height: 360px;
+      overflow: auto;
+    }
+
+    .project-list-item {
+      display: grid;
+      grid-template-columns: minmax(160px, 1fr) 150px auto;
+      gap: 8px;
+      align-items: center;
+      padding: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff7e8;
+    }
+
+    .main-content {
+      display: grid;
+      gap: 12px;
+    }
+
+    .status-panel {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      overflow: hidden;
+    }
+
+    .metric {
+      min-height: 78px;
+      padding: 13px 14px;
+      background: #fffdf7;
+    }
+
+    .metric span {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .metric strong {
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    .todo-panel {
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      min-width: 960px;
+      border-collapse: collapse;
+    }
+
+    th,
+    td {
+      padding: 12px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      vertical-align: middle;
+    }
+
+    th {
+      color: var(--muted);
+      background: #fafbf9;
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .add-row td {
+      padding: 10px 14px;
+      background: #fffdf7;
+    }
+
+    .add-todo {
+      width: 100%;
+      min-height: 38px;
+      color: var(--accent);
+      border: 1px dashed #9fb8c5;
+      border-radius: 7px;
+      background: var(--accent-soft);
+      font-size: 24px;
+      line-height: 1;
+    }
+
+    .task-row.pending {
+      color: var(--red-text);
+      background: var(--red-bg);
+    }
+
+    .task-row.pending td:first-child {
+      border-left: 4px solid var(--red-line);
+    }
+
+    .task-row.done {
+      color: var(--green-text);
+      background: var(--green-bg);
+    }
+
+    .task-row.done td:first-child {
+      border-left: 4px solid var(--green-line);
+    }
+
+    .task-row.dragging {
+      opacity: 0.5;
+    }
+
+    .drag-handle {
+      color: var(--muted);
+      font-size: 18px;
+      user-select: none;
+    }
+
+    .task-title {
+      min-width: 240px;
+      font-weight: 720;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    .task-note {
+      margin-top: 5px;
+      color: inherit;
+      opacity: 0.82;
+      font-size: 13px;
+      word-break: break-word;
+    }
+
+    .chip,
+    .status {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 28px;
+      max-width: 220px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 1px solid currentColor;
+      background: rgba(255, 250, 240, 0.72);
+      font-size: 13px;
+      font-weight: 720;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .ddl-small {
+      margin-top: 6px;
+      color: var(--gold);
+      font-size: 13px;
+      font-weight: 720;
+    }
+
+    .empty {
+      padding: 38px 16px;
+      color: var(--muted);
+      text-align: center;
+      background: #fffdf7;
+    }
+
+    .actions {
+      display: flex;
+      gap: 7px;
+      justify-content: flex-end;
+      min-width: 176px;
+    }
+
+    .icon-button {
+      width: 38px;
+      min-width: 38px;
+      padding: 0;
+      font-size: 17px;
+      line-height: 1;
+    }
+
+    .hidden-note {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .calendar-panel {
+      padding: 12px;
+    }
+
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 10px;
+    }
+
+    .day-card {
+      min-height: 148px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff7e8;
+    }
+
+    .day-card.today {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px var(--accent);
+    }
+
+    .day-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 10px;
+      font-weight: 760;
+    }
+
+    .day-count {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 680;
+    }
+
+    .calendar-projects {
+      display: grid;
+      gap: 6px;
+    }
+
+    .calendar-project {
+      display: grid;
+      gap: 3px;
+      padding: 8px;
+      border-radius: 7px;
+      background: #fffdf7;
+      border: 1px solid var(--line);
+    }
+
+    .calendar-project strong {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px;
+    }
+
+    .calendar-project span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    dialog {
+      width: min(700px, calc(100vw - 28px));
+      max-height: min(760px, calc(100vh - 28px));
+      padding: 0;
+      border: 0;
+      border-radius: 8px;
+      box-shadow: 0 24px 70px rgba(31, 39, 45, 0.24);
+      overflow: hidden;
+    }
+
+    dialog::backdrop {
+      background: rgba(65, 39, 23, 0.38);
+    }
+
+    .dialog-body {
+      display: grid;
+      gap: 12px;
+      padding: 18px;
+      background: #fffdf7;
+    }
+
+    .dialog-body h2 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.2;
+    }
+
+    .dialog-body p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .dialog-grid {
+      display: grid;
+      gap: 10px;
+    }
+
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .dialog-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .review-task {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff7e8;
+    }
+
+    .review-meta {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .is-hidden {
+      display: none;
+    }
+
+    @media (max-width: 820px) {
+      .app {
+        width: min(100vw - 18px, 1180px);
+        padding-top: 14px;
+      }
+
+      .topbar,
+      .status-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .range-control {
+        justify-content: start;
+      }
+
+      .range-control input {
+        flex: 1;
+        min-width: 150px;
+      }
+
+      .project-rail {
+        grid-auto-columns: minmax(190px, 84vw);
+      }
+
+      .project-list-item {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="topbar" aria-label="日期控制">
+      <div class="segmented" role="tablist" aria-label="快速切换日期">
+        <button type="button" id="todayBtn">今天</button>
+        <button type="button" id="tomorrowBtn">明天</button>
+      </div>
+
+      <div class="range-control">
+        <input type="date" id="rangeStart" aria-label="开始日期">
+        <span>至</span>
+        <input type="date" id="rangeEnd" aria-label="结束日期">
+        <button type="button" class="ghost" id="clearRangeBtn">单日</button>
+      </div>
+
+      <button type="button" class="ghost" id="showAllBtn">全部记录</button>
+    </section>
+
+    <section class="ddl-strip" aria-label="DDL 项目">
+      <div class="section-title">
+        <span>DDL 项目</span>
+        <span>
+          <button class="ghost" type="button" id="manageProjectsBtn">管理全部项目</button>
+          <span id="projectHint"></span>
+        </span>
+      </div>
+      <div class="project-rail" id="projectRail"></div>
+    </section>
+
+    <section class="main-content" id="dailyView">
+      <section class="status-panel" aria-label="Todo 完成情况">
+        <div class="metric">
+          <span>当前显示</span>
+          <strong id="totalCount">0</strong>
+        </div>
+        <div class="metric">
+          <span>未完成</span>
+          <strong id="pendingCount">0</strong>
+        </div>
+        <div class="metric">
+          <span>已完成</span>
+          <strong id="doneCount">0</strong>
+        </div>
+        <div class="metric">
+          <span>完成率</span>
+          <strong id="doneRate">0%</strong>
+        </div>
+      </section>
+
+      <section class="todo-panel" aria-label="Todo 清单">
+        <table>
+          <thead>
+            <tr>
+              <th>排序</th>
+              <th>Todo</th>
+              <th>项目 / DDL</th>
+              <th>日期</th>
+              <th>状态</th>
+              <th>完成记录</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="taskBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty" hidden>这一天还没有 todo。</div>
+      </section>
+
+      <p class="hidden-note" id="hiddenNote"></p>
+    </section>
+
+    <section class="calendar-panel is-hidden" id="calendarView" aria-label="日历视图">
+      <div class="section-title">
+        <span id="calendarTitle">日历视图</span>
+        <span>按日期查看主要项目</span>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+    </section>
+  </main>
+
+  <dialog id="projectDialog">
+    <form class="dialog-body" id="projectForm" method="dialog">
+      <h2 id="projectDialogTitle">添加项目</h2>
+      <div class="dialog-grid">
+        <input id="projectName" type="text" placeholder="项目名称">
+        <div class="field">
+          <label for="projectDdl">项目 DDL</label>
+          <input type="date" id="projectDdl">
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="ghost" type="button" id="projectCancelBtn">取消</button>
+        <button class="primary" type="submit">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="taskDialog">
+    <form class="dialog-body" id="taskForm" method="dialog">
+      <h2 id="taskDialogTitle">编辑 Todo</h2>
+      <div class="dialog-grid">
+        <textarea id="taskText" placeholder="Todo 内容"></textarea>
+        <div class="field">
+          <label for="taskProject">归属项目</label>
+          <select id="taskProject"></select>
+        </div>
+        <input id="taskNote" type="text" placeholder="备注，可选">
+      </div>
+      <div class="dialog-actions">
+        <button class="ghost" type="button" id="taskCancelBtn">取消</button>
+        <button class="primary" type="submit">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="projectListDialog">
+    <div class="dialog-body">
+      <h2>全部项目</h2>
+      <div class="project-list" id="projectListBody"></div>
+      <div class="dialog-actions">
+        <button class="ghost" type="button" id="projectListCloseBtn">关闭</button>
+        <button class="primary" type="button" id="projectListAddBtn">添加项目</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="reviewDialog">
+    <div class="dialog-body">
+      <h2>确认历史任务状态</h2>
+      <p id="reviewIntro"></p>
+      <div id="reviewBody"></div>
+      <div class="dialog-actions">
+        <button class="ghost" type="button" id="reviewKeepBtn">暂不完成</button>
+        <button class="primary" type="button" id="reviewDoneBtn">确认完成</button>
+      </div>
+    </div>
+  </dialog>
+
+  <script>
+    const STORAGE_KEY = "daily-todo-table-v1";
+    const UNASSIGNED_PROJECT = "未归类";
+
+    const state = loadData();
+    state.selectedDate = formatDate(new Date());
+    state.rangeStart = state.selectedDate;
+    state.rangeEnd = "";
+    state.viewMode = "date";
+    state.editingProjectId = null;
+    state.editingTaskId = null;
+    state.reviewQueue = [];
+    state.reviewIndex = 0;
+    state.draggingTaskId = null;
+
+    const els = {
+      todayBtn: document.querySelector("#todayBtn"),
+      tomorrowBtn: document.querySelector("#tomorrowBtn"),
+      rangeStart: document.querySelector("#rangeStart"),
+      rangeEnd: document.querySelector("#rangeEnd"),
+      clearRangeBtn: document.querySelector("#clearRangeBtn"),
+      showAllBtn: document.querySelector("#showAllBtn"),
+      projectHint: document.querySelector("#projectHint"),
+      manageProjectsBtn: document.querySelector("#manageProjectsBtn"),
+      projectRail: document.querySelector("#projectRail"),
+      dailyView: document.querySelector("#dailyView"),
+      calendarView: document.querySelector("#calendarView"),
+      calendarTitle: document.querySelector("#calendarTitle"),
+      calendarGrid: document.querySelector("#calendarGrid"),
+      totalCount: document.querySelector("#totalCount"),
+      pendingCount: document.querySelector("#pendingCount"),
+      doneCount: document.querySelector("#doneCount"),
+      doneRate: document.querySelector("#doneRate"),
+      taskBody: document.querySelector("#taskBody"),
+      emptyState: document.querySelector("#emptyState"),
+      hiddenNote: document.querySelector("#hiddenNote"),
+      projectDialog: document.querySelector("#projectDialog"),
+      projectForm: document.querySelector("#projectForm"),
+      projectDialogTitle: document.querySelector("#projectDialogTitle"),
+      projectName: document.querySelector("#projectName"),
+      projectDdl: document.querySelector("#projectDdl"),
+      projectCancelBtn: document.querySelector("#projectCancelBtn"),
+      projectListDialog: document.querySelector("#projectListDialog"),
+      projectListBody: document.querySelector("#projectListBody"),
+      projectListCloseBtn: document.querySelector("#projectListCloseBtn"),
+      projectListAddBtn: document.querySelector("#projectListAddBtn"),
+      taskDialog: document.querySelector("#taskDialog"),
+      taskForm: document.querySelector("#taskForm"),
+      taskDialogTitle: document.querySelector("#taskDialogTitle"),
+      taskText: document.querySelector("#taskText"),
+      taskProject: document.querySelector("#taskProject"),
+      taskNote: document.querySelector("#taskNote"),
+      taskCancelBtn: document.querySelector("#taskCancelBtn"),
+      reviewDialog: document.querySelector("#reviewDialog"),
+      reviewIntro: document.querySelector("#reviewIntro"),
+      reviewBody: document.querySelector("#reviewBody"),
+      reviewKeepBtn: document.querySelector("#reviewKeepBtn"),
+      reviewDoneBtn: document.querySelector("#reviewDoneBtn")
+    };
+
+    init();
+
+    function init() {
+      els.rangeStart.value = state.selectedDate;
+
+      els.todayBtn.addEventListener("click", () => selectSingleDate(formatDate(new Date())));
+      els.tomorrowBtn.addEventListener("click", () => selectSingleDate(addDays(formatDate(new Date()), 1)));
+      els.rangeStart.addEventListener("change", updateDateControls);
+      els.rangeEnd.addEventListener("change", updateDateControls);
+      els.clearRangeBtn.addEventListener("click", () => selectSingleDate(els.rangeStart.value || formatDate(new Date())));
+      els.showAllBtn.addEventListener("click", toggleAll);
+
+      els.projectRail.addEventListener("click", handleProjectRailClick);
+      els.manageProjectsBtn.addEventListener("click", openProjectList);
+      els.projectForm.addEventListener("submit", saveProject);
+      els.projectCancelBtn.addEventListener("click", () => els.projectDialog.close());
+      els.projectListBody.addEventListener("click", handleProjectListClick);
+      els.projectListCloseBtn.addEventListener("click", () => els.projectListDialog.close());
+      els.projectListAddBtn.addEventListener("click", () => {
+        els.projectListDialog.close();
+        openProjectDialog();
+      });
+
+      els.taskBody.addEventListener("click", handleTaskClick);
+      els.taskBody.addEventListener("dragstart", handleDragStart);
+      els.taskBody.addEventListener("dragover", handleDragOver);
+      els.taskBody.addEventListener("drop", handleDrop);
+      els.taskBody.addEventListener("dragend", handleDragEnd);
+      els.taskForm.addEventListener("submit", saveTask);
+      els.taskCancelBtn.addEventListener("click", () => els.taskDialog.close());
+
+      els.reviewKeepBtn.addEventListener("click", () => answerReview(false));
+      els.reviewDoneBtn.addEventListener("click", () => answerReview(true));
+
+      render();
+      openDailyReview();
+    }
+
+    function updateDateControls() {
+      if (!els.rangeStart.value) return;
+
+      state.rangeStart = els.rangeStart.value;
+      state.rangeEnd = els.rangeEnd.value;
+      state.selectedDate = els.rangeStart.value;
+
+      if (state.rangeEnd && state.rangeEnd < state.rangeStart) {
+        [state.rangeStart, state.rangeEnd] = [state.rangeEnd, state.rangeStart];
+        els.rangeStart.value = state.rangeStart;
+        els.rangeEnd.value = state.rangeEnd;
+      }
+
+      state.viewMode = state.rangeEnd ? "calendar" : "date";
+      render();
+    }
+
+    function selectSingleDate(date) {
+      state.selectedDate = date;
+      state.rangeStart = date;
+      state.rangeEnd = "";
+      state.viewMode = "date";
+      els.rangeStart.value = date;
+      els.rangeEnd.value = "";
+      render();
+    }
+
+    function toggleAll() {
+      state.viewMode = state.viewMode === "all" ? "date" : "all";
+      if (state.viewMode === "date") {
+        state.rangeEnd = "";
+        els.rangeEnd.value = "";
+      }
+      render();
+    }
+
+    function handleProjectRailClick(event) {
+      const button = event.target.closest("button[data-project-action]");
+      const card = event.target.closest("[data-project-id]");
+
+      if (event.target.closest("[data-add-project]")) {
+        openProjectDialog();
+        return;
+      }
+
+      if (!button || !card) return;
+      const project = findProject(card.dataset.projectId);
+      if (!project) return;
+
+      if (button.dataset.projectAction === "edit") {
+        els.projectListDialog.close();
+        openProjectDialog(project);
+      }
+
+      if (button.dataset.projectAction === "delete") {
+        state.tasks.forEach((task) => {
+          if (task.projectId === project.id) task.projectId = "";
+        });
+        state.projects = state.projects.filter((item) => item.id !== project.id);
+        saveData();
+        render();
+      }
+    }
+
+    function openProjectDialog(project = null) {
+      state.editingProjectId = project ? project.id : null;
+      els.projectDialogTitle.textContent = project ? "修改项目" : "添加项目";
+      els.projectName.value = project ? project.name : "";
+      els.projectDdl.value = project ? project.ddl || "" : "";
+      els.projectDialog.showModal();
+      els.projectName.focus();
+    }
+
+    function saveProject(event) {
+      event.preventDefault();
+      const name = els.projectName.value.trim() || "未命名项目";
+      const ddl = els.projectDdl.value;
+
+      if (state.editingProjectId) {
+        const project = findProject(state.editingProjectId);
+        if (project) {
+          project.name = name;
+          project.ddl = ddl;
+        }
+      } else {
+        state.projects.push({
+          id: crypto.randomUUID ? crypto.randomUUID() : `project-${Date.now()}`,
+          name,
+          ddl,
+          createdAt: new Date().toISOString()
+        });
+      }
+
+      state.editingProjectId = null;
+      els.projectDialog.close();
+      saveData();
+      render();
+      renderProjectListDialog();
+    }
+
+    function openProjectList() {
+      renderProjectListDialog();
+      els.projectListDialog.showModal();
+    }
+
+    function renderProjectListDialog() {
+      const projects = [...state.projects].sort(compareProjects);
+      els.projectListBody.innerHTML = projects.length
+        ? projects.map(projectListItem).join("")
+        : `<div class="empty">还没有项目。</div>`;
+    }
+
+    function projectListItem(project) {
+      const ddl = project.ddl ? friendlyDate(project.ddl) : "未设置 DDL";
+      return `
+        <div class="project-list-item" data-project-id="${project.id}">
+          <div class="project-name" title="${escapeHtml(project.name)}">${escapeHtml(project.name)}</div>
+          <div class="project-ddl">${ddl}</div>
+          <div class="project-card-actions">
+            <button class="icon-button" type="button" data-project-action="edit" title="修改项目" aria-label="修改项目">✎</button>
+            <button class="icon-button" type="button" data-project-action="delete" title="删除项目" aria-label="删除项目">×</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function handleProjectListClick(event) {
+      const button = event.target.closest("button[data-project-action]");
+      const row = event.target.closest("[data-project-id]");
+      if (!button || !row) return;
+      const project = findProject(row.dataset.projectId);
+      if (!project) return;
+
+      if (button.dataset.projectAction === "edit") {
+        openProjectDialog(project);
+      }
+
+      if (button.dataset.projectAction === "delete") {
+        state.tasks.forEach((task) => {
+          if (task.projectId === project.id) task.projectId = "";
+        });
+        state.projects = state.projects.filter((item) => item.id !== project.id);
+        saveData();
+        render();
+        renderProjectListDialog();
+      }
+    }
+
+    function handleTaskClick(event) {
+      const addButton = event.target.closest("[data-add-task]");
+      if (addButton) {
+        addBlankTask();
+        return;
+      }
+
+      const button = event.target.closest("button[data-action]");
+      if (!button) return;
+      const task = state.tasks.find((item) => item.id === button.dataset.id);
+      if (!task) return;
+
+      if (button.dataset.action === "toggle") {
+        task.done = !task.done;
+        task.completedAt = task.done ? new Date().toISOString() : null;
+        task.completedDate = task.done ? formatDate(new Date()) : "";
+      }
+
+      if (button.dataset.action === "edit") {
+        openTaskDialog(task);
+        return;
+      }
+
+      if (button.dataset.action === "delete") {
+        state.tasks = state.tasks.filter((item) => item.id !== task.id);
+      }
+
+      saveData();
+      render();
+    }
+
+    function addBlankTask() {
+      const task = {
+        id: crypto.randomUUID ? crypto.randomUUID() : `task-${Date.now()}`,
+        text: "",
+        note: "",
+        projectId: "",
+        targetDate: state.viewMode === "all" ? formatDate(new Date()) : state.selectedDate,
+        done: false,
+        createdAt: new Date().toISOString(),
+        completedAt: null,
+        completedDate: "",
+        order: nextOrder()
+      };
+      state.tasks.unshift(task);
+      saveData();
+      render();
+      openTaskDialog(task);
+    }
+
+    function openTaskDialog(task) {
+      state.editingTaskId = task.id;
+      els.taskDialogTitle.textContent = task.text ? "修改 Todo" : "完善 Todo";
+      els.taskText.value = task.text;
+      els.taskNote.value = task.note || "";
+      renderProjectOptions(els.taskProject, task.projectId || "");
+      els.taskDialog.showModal();
+      els.taskText.focus();
+    }
+
+    function saveTask(event) {
+      event.preventDefault();
+      const task = state.tasks.find((item) => item.id === state.editingTaskId);
+      if (task) {
+        task.text = els.taskText.value.trim();
+        task.note = els.taskNote.value.trim();
+        task.projectId = els.taskProject.value || "";
+      }
+      state.editingTaskId = null;
+      els.taskDialog.close();
+      saveData();
+      render();
+    }
+
+    function handleDragStart(event) {
+      const row = event.target.closest("tr[data-task-id]");
+      if (!row) return;
+      state.draggingTaskId = row.dataset.taskId;
+      row.classList.add("dragging");
+      event.dataTransfer.effectAllowed = "move";
+      event.dataTransfer.setData("text/plain", row.dataset.taskId);
+    }
+
+    function handleDragOver(event) {
+      if (!event.target.closest("tr[data-task-id]")) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = "move";
+    }
+
+    function handleDrop(event) {
+      const row = event.target.closest("tr[data-task-id]");
+      if (!row || !state.draggingTaskId || row.dataset.taskId === state.draggingTaskId) return;
+      event.preventDefault();
+      reorderVisibleTasks(state.draggingTaskId, row.dataset.taskId);
+      saveData();
+      render();
+    }
+
+    function handleDragEnd() {
+      state.draggingTaskId = null;
+      document.querySelectorAll(".dragging").forEach((item) => item.classList.remove("dragging"));
+    }
+
+    function reorderVisibleTasks(sourceId, targetId) {
+      const visible = getVisibleTasks();
+      const sourceIndex = visible.findIndex((task) => task.id === sourceId);
+      const targetIndex = visible.findIndex((task) => task.id === targetId);
+      if (sourceIndex < 0 || targetIndex < 0) return;
+
+      const [source] = visible.splice(sourceIndex, 1);
+      visible.splice(targetIndex, 0, source);
+      visible.forEach((task, index) => {
+        task.order = index + 1;
+      });
+    }
+
+    function getVisibleTasks() {
+      const today = formatDate(new Date());
+      return state.tasks.filter((task) => {
+        if (state.viewMode === "all") return true;
+        if (state.viewMode === "calendar") return task.targetDate >= state.rangeStart && task.targetDate <= state.rangeEnd;
+        if (task.targetDate !== state.selectedDate) return false;
+        if (!task.done && task.targetDate < today) return false;
+        return true;
+      }).sort(compareTasks);
+    }
+
+    function getHiddenOverdueCount() {
+      const today = formatDate(new Date());
+      return state.tasks.filter((task) => !task.done && task.targetDate < today).length;
+    }
+
+    function render() {
+      renderTopbar();
+      renderProjects();
+
+      if (state.viewMode === "calendar") {
+        els.dailyView.classList.add("is-hidden");
+        els.calendarView.classList.remove("is-hidden");
+        renderCalendar();
+        return;
+      }
+
+      els.calendarView.classList.add("is-hidden");
+      els.dailyView.classList.remove("is-hidden");
+      renderDaily();
+    }
+
+    function renderTopbar() {
+      const today = formatDate(new Date());
+      const tomorrow = addDays(today, 1);
+
+      els.todayBtn.classList.toggle("active", state.viewMode === "date" && state.selectedDate === today);
+      els.tomorrowBtn.classList.toggle("active", state.viewMode === "date" && state.selectedDate === tomorrow);
+      els.showAllBtn.textContent = state.viewMode === "all" ? "返回日期" : "全部记录";
+      els.clearRangeBtn.hidden = !state.rangeEnd && state.viewMode !== "calendar";
+    }
+
+    function renderProjects() {
+      const ddlProjects = [...state.projects]
+        .filter((project) => project.ddl)
+        .sort(compareProjects);
+
+      const firstProjects = ddlProjects.slice(0, 3);
+      const remainingProjects = ddlProjects.slice(3);
+      els.projectHint.textContent = remainingProjects.length ? "左右滑动查看更多" : "";
+      els.projectRail.innerHTML = firstProjects.map(projectCard).join("")
+        + addProjectCard()
+        + remainingProjects.map(projectCard).join("");
+    }
+
+    function projectCard(project) {
+      return `
+        <div class="project-card has-ddl" data-project-id="${project.id}">
+          <div>
+            <div class="project-name" title="${escapeHtml(project.name)}">${escapeHtml(project.name)}</div>
+            <div class="project-ddl">DDL ${friendlyDate(project.ddl)}</div>
+          </div>
+          <div class="project-card-actions">
+            <button class="icon-button" type="button" data-project-action="edit" title="修改项目" aria-label="修改项目">✎</button>
+            <button class="icon-button" type="button" data-project-action="delete" title="删除项目" aria-label="删除项目">×</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function addProjectCard() {
+      return `
+        <button class="project-card add-card" type="button" data-add-project>
+          <span>+ 添加项目</span>
+        </button>
+      `;
+    }
+
+    function renderDaily() {
+      const visibleTasks = getVisibleTasks();
+      const pending = visibleTasks.filter((task) => !task.done).length;
+      const done = visibleTasks.filter((task) => task.done).length;
+      const total = visibleTasks.length;
+
+      els.totalCount.textContent = total;
+      els.pendingCount.textContent = pending;
+      els.doneCount.textContent = done;
+      els.doneRate.textContent = total ? `${Math.round((done / total) * 100)}%` : "0%";
+
+      els.taskBody.innerHTML = addTaskRow() + visibleTasks.map(taskRow).join("");
+      els.emptyState.hidden = visibleTasks.length > 0;
+
+      const hiddenCount = getHiddenOverdueCount();
+      els.hiddenNote.textContent = hiddenCount
+        ? `已隐藏 ${hiddenCount} 条早于今天且未完成的红色任务。需要查看时点“全部记录”。`
+        : "";
+
+      if (state.viewMode === "all") {
+        els.hiddenNote.textContent = "全部记录会显示历史红色任务；日常日期视图会自动隐藏早于今天的未完成任务。";
+      }
+    }
+
+    function addTaskRow() {
+      return `
+        <tr class="add-row">
+          <td colspan="7">
+            <button class="add-todo" type="button" data-add-task title="添加空白 todo" aria-label="添加空白 todo">+</button>
+          </td>
+        </tr>
+      `;
+    }
+
+    function taskRow(task) {
+      const project = getProjectForTask(task);
+      const status = task.done ? "已完成" : "未完成";
+      const actionLabel = task.done ? "↺" : "✓";
+      const actionTitle = task.done ? "标记为未完成" : "标记为完成";
+      const rowClass = task.done ? "done" : "pending";
+      const text = task.text || "空白 Todo";
+      const note = task.note ? `<div class="task-note">${escapeHtml(task.note)}</div>` : "";
+      const ddl = project.ddl ? `<div class="ddl-small">DDL ${friendlyDate(project.ddl)}</div>` : "";
+      const completedDate = task.completedDate ? friendlyDate(task.completedDate) : "未完成";
+
+      return `
+        <tr class="task-row ${rowClass}" draggable="true" data-task-id="${task.id}">
+          <td><span class="drag-handle">↕</span></td>
+          <td>
+            <div class="task-title">${escapeHtml(text)}</div>
+            ${note}
+          </td>
+          <td>
+            <div class="chip" title="${escapeHtml(project.name)}">${escapeHtml(project.name)}</div>
+            ${ddl}
+          </td>
+          <td>${friendlyDate(task.targetDate)}</td>
+          <td><span class="status">${status}</span></td>
+          <td>${completedDate}</td>
+          <td>
+            <div class="actions">
+              <button class="icon-button" type="button" data-action="toggle" data-id="${task.id}" title="${actionTitle}" aria-label="${actionTitle}">${actionLabel}</button>
+              <button class="icon-button" type="button" data-action="edit" data-id="${task.id}" title="修改 Todo" aria-label="修改 Todo">✎</button>
+              <button class="icon-button" type="button" data-action="delete" data-id="${task.id}" title="删除 Todo" aria-label="删除 Todo">×</button>
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+
+    function renderCalendar() {
+      const start = state.rangeStart;
+      const end = state.rangeEnd;
+      const days = enumerateDates(start, end);
+      els.calendarTitle.textContent = `${friendlyDate(start)} - ${friendlyDate(end)}`;
+      els.calendarGrid.innerHTML = days.map(dayCard).join("");
+    }
+
+    function dayCard(date) {
+      const today = formatDate(new Date());
+      const tasks = state.tasks.filter((task) => task.targetDate === date);
+      const projectGroups = groupTasksByProject(tasks);
+      const content = projectGroups.length
+        ? projectGroups.map(calendarProject).join("")
+        : `<div class="empty">没有 todo</div>`;
+
+      return `
+        <article class="day-card ${date === today ? "today" : ""}">
+          <div class="day-head">
+            <span>${friendlyDate(date)}</span>
+            <span class="day-count">${tasks.length} 条</span>
+          </div>
+          <div class="calendar-projects">${content}</div>
+        </article>
+      `;
+    }
+
+    function calendarProject(group) {
+      const done = group.tasks.filter((task) => task.done).length;
+      return `
+        <div class="calendar-project">
+          <strong title="${escapeHtml(group.project.name)}">${escapeHtml(group.project.name)}</strong>
+          <span>${group.tasks.length} 条 todo，完成 ${done} 条</span>
+        </div>
+      `;
+    }
+
+    function groupTasksByProject(tasks) {
+      const map = new Map();
+      tasks.forEach((task) => {
+        const project = getProjectForTask(task);
+        if (!map.has(project.id)) {
+          map.set(project.id, {
+            project,
+            tasks: []
+          });
+        }
+        map.get(project.id).tasks.push(task);
+      });
+
+      return [...map.values()].sort((a, b) => compareProjects(a.project, b.project));
+    }
+
+    function openDailyReview() {
+      const today = formatDate(new Date());
+      if (state.lastReviewDate === today) return;
+
+      state.reviewQueue = state.tasks
+        .filter((task) => !task.done && task.targetDate < today)
+        .sort((a, b) => a.targetDate.localeCompare(b.targetDate) || compareTasks(a, b));
+
+      if (!state.reviewQueue.length) {
+        state.lastReviewDate = today;
+        saveData();
+        return;
+      }
+
+      state.reviewIndex = 0;
+      renderReview();
+      els.reviewDialog.showModal();
+    }
+
+    function renderReview() {
+      const task = state.reviewQueue[state.reviewIndex];
+      if (!task) {
+        state.lastReviewDate = formatDate(new Date());
+        saveData();
+        els.reviewDialog.close();
+        render();
+        return;
+      }
+
+      const project = getProjectForTask(task);
+      els.reviewIntro.textContent = `${friendlyDate(task.targetDate)} 的 todo 还没有确认状态。`;
+      els.reviewBody.innerHTML = `
+        <div class="review-task">
+          <strong>${escapeHtml(task.text || "空白 Todo")}</strong>
+          <div class="review-meta">${escapeHtml(project.name)} · ${state.reviewIndex + 1}/${state.reviewQueue.length}</div>
+        </div>
+      `;
+    }
+
+    function answerReview(isDone) {
+      const task = state.reviewQueue[state.reviewIndex];
+      if (task && isDone) {
+        task.done = true;
+        task.completedDate = task.targetDate;
+        task.completedAt = `${task.targetDate}T23:59:59`;
+      }
+      state.reviewIndex += 1;
+      renderReview();
+    }
+
+    function renderProjectOptions(select, selectedValue = "") {
+      const projects = [...state.projects].sort(compareProjects);
+      const options = [`<option value="">${UNASSIGNED_PROJECT}</option>`]
+        .concat(projects.map((project) => `<option value="${project.id}">${escapeHtml(project.name)}</option>`));
+      select.innerHTML = options.join("");
+      select.value = projects.some((project) => project.id === selectedValue) ? selectedValue : "";
+    }
+
+    function compareTasks(a, b) {
+      if (state.viewMode === "all" && a.targetDate !== b.targetDate) {
+        return b.targetDate.localeCompare(a.targetDate);
+      }
+      return (a.order || 0) - (b.order || 0) || new Date(b.createdAt) - new Date(a.createdAt);
+    }
+
+    function compareProjects(a, b) {
+      const aHasDdl = Boolean(a.ddl);
+      const bHasDdl = Boolean(b.ddl);
+      if (aHasDdl !== bHasDdl) return aHasDdl ? -1 : 1;
+      if (aHasDdl && a.ddl !== b.ddl) return a.ddl.localeCompare(b.ddl);
+      return a.name.localeCompare(b.name, "zh-CN");
+    }
+
+    function findProject(id) {
+      return state.projects.find((project) => project.id === id);
+    }
+
+    function getProjectForTask(task) {
+      return findProject(task.projectId) || {
+        id: "",
+        name: UNASSIGNED_PROJECT,
+        ddl: ""
+      };
+    }
+
+    function nextOrder() {
+      return Math.max(0, ...state.tasks.map((task) => task.order || 0)) + 1;
+    }
+
+    function enumerateDates(start, end) {
+      const dates = [];
+      let cursor = new Date(`${start}T00:00:00`);
+      const last = new Date(`${end}T00:00:00`);
+      while (cursor <= last) {
+        dates.push(formatDate(cursor));
+        cursor.setDate(cursor.getDate() + 1);
+      }
+      return dates;
+    }
+
+    function loadData() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        if (Array.isArray(saved)) return migrateArrayData(saved);
+
+        const data = saved || {};
+        const projects = (Array.isArray(data.projects) ? data.projects : [])
+          .map(normalizeProject)
+          .filter(Boolean);
+        const tasks = (Array.isArray(data.tasks) ? data.tasks : []).map((task, index) => normalizeTask({
+          ...task,
+          projectId: task.projectId || migrateProject(projects, task.project, task.projectDdl),
+          order: task.order || index + 1
+        }));
+
+        return {
+          tasks,
+          projects,
+          lastReviewDate: data.lastReviewDate || ""
+        };
+      } catch {
+        return {
+          tasks: [],
+          projects: [],
+          lastReviewDate: ""
+        };
+      }
+    }
+
+    function migrateArrayData(oldTasks) {
+      const projects = [];
+      const tasks = oldTasks.map((task, index) => normalizeTask({
+        ...task,
+        projectId: migrateProject(projects, task.project, task.projectDdl),
+        order: task.order || index + 1
+      }));
+      return {
+        tasks,
+        projects,
+        lastReviewDate: ""
+      };
+    }
+
+    function migrateProject(projects, projectName, projectDdl) {
+      const name = projectName || projectName === "" ? String(projectName).trim() : "";
+      const safeName = name && name !== "未分类" ? name : UNASSIGNED_PROJECT;
+      if (safeName === UNASSIGNED_PROJECT) return "";
+
+      let project = projects.find((item) => item.name === safeName);
+      if (!project) {
+        project = {
+          id: crypto.randomUUID ? crypto.randomUUID() : `project-${Date.now()}-${projects.length}`,
+          name: safeName,
+          ddl: projectDdl || "",
+          createdAt: new Date().toISOString()
+        };
+        projects.push(project);
+      }
+      if (projectDdl && !project.ddl) project.ddl = projectDdl;
+      return project.id;
+    }
+
+    function normalizeTask(task) {
+      const done = Boolean(task.done);
+      return {
+        id: task.id || (crypto.randomUUID ? crypto.randomUUID() : `task-${Date.now()}`),
+        text: task.text || "",
+        note: task.note || "",
+        projectId: task.projectId || "",
+        targetDate: task.targetDate || formatDate(new Date()),
+        done,
+        createdAt: task.createdAt || new Date().toISOString(),
+        completedAt: task.completedAt || null,
+        completedDate: task.completedDate || (done && task.completedAt ? formatDate(task.completedAt) : ""),
+        order: task.order || 9999
+      };
+    }
+
+    function normalizeProject(project) {
+      if (!project || !project.name) return null;
+      return {
+        id: project.id || (crypto.randomUUID ? crypto.randomUUID() : `project-${Date.now()}`),
+        name: project.name,
+        ddl: project.ddl || "",
+        createdAt: project.createdAt || new Date().toISOString()
+      };
+    }
+
+    function saveData() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        tasks: state.tasks,
+        projects: state.projects,
+        lastReviewDate: state.lastReviewDate || ""
+      }));
+    }
+
+    function formatDate(date) {
+      const value = date instanceof Date ? date : new Date(date);
+      const year = value.getFullYear();
+      const month = String(value.getMonth() + 1).padStart(2, "0");
+      const day = String(value.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function addDays(dateString, days) {
+      const date = new Date(`${dateString}T00:00:00`);
+      date.setDate(date.getDate() + days);
+      return formatDate(date);
+    }
+
+    function friendlyDate(dateString) {
+      const date = new Date(`${dateString}T00:00:00`);
+      return date.toLocaleDateString("zh-CN", {
+        month: "long",
+        day: "numeric",
+        weekday: "short"
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+  </script>
+</body>
+</html>
