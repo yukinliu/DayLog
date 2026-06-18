@@ -223,12 +223,30 @@
       border-color: #d9aa4e;
     }
 
+    .project-card.due-soon {
+      background:
+        linear-gradient(135deg, rgba(255, 232, 213, 0.98), rgba(255, 247, 232, 0.92)),
+        #fff0e8;
+      border-color: #cf7042;
+    }
+
+    .project-card.due-later {
+      background:
+        linear-gradient(135deg, rgba(255, 245, 216, 0.96), rgba(255, 250, 240, 0.9)),
+        var(--gold-soft);
+      border-color: #d9aa4e;
+    }
+
     .project-card.has-ddl::before {
       content: "";
       position: absolute;
       inset: 0 auto 0 0;
       width: 5px;
       background: linear-gradient(180deg, var(--accent), var(--gold));
+    }
+
+    .project-card.due-later::before {
+      background: linear-gradient(180deg, var(--gold), #d9aa4e);
     }
 
     .project-card.add-card {
@@ -283,6 +301,16 @@
       margin-left: 2px;
       font-size: 13px;
       font-weight: 720;
+    }
+
+    .project-card.due-later .days-left {
+      color: #5f401f;
+      background: linear-gradient(135deg, #f3cf83, #e6b85d);
+      box-shadow: 0 8px 18px rgba(159, 103, 24, 0.14);
+    }
+
+    .project-card.due-soon .days-left {
+      background: linear-gradient(135deg, #b6402a, #d36a32);
     }
 
     .countdown-text {
@@ -1223,12 +1251,12 @@
     function projectCard(project) {
       const countdown = getDdlCountdown(project.ddl);
       return `
-        <div class="project-card has-ddl" data-project-id="${project.id}">
+        <div class="project-card has-ddl ${countdown.variant}" data-project-id="${project.id}">
           <div class="project-content">
             <div class="project-name" title="${escapeHtml(project.name)}">${escapeHtml(project.name)}</div>
             <div class="project-countdown">
               <div class="days-left">${countdown.days}<small>天</small></div>
-              <div class="countdown-text">距离 ${friendlyDate(project.ddl)}<br>${countdown.label}</div>
+              <div class="countdown-text">距离 ${friendlyDate(project.ddl)}</div>
             </div>
           </div>
           <div class="project-card-actions">
@@ -1251,9 +1279,9 @@
       const today = new Date(`${formatDate(new Date())}T00:00:00`);
       const ddl = new Date(`${dateString}T00:00:00`);
       const diff = Math.ceil((ddl - today) / 86400000);
-      if (diff > 0) return { days: diff, label: `还剩 ${diff} 天` };
-      if (diff === 0) return { days: 0, label: "今天截止" };
-      return { days: Math.abs(diff), label: `已超期 ${Math.abs(diff)} 天` };
+      if (diff > 30) return { days: diff, variant: "due-later" };
+      if (diff >= 0) return { days: diff, variant: "due-soon" };
+      return { days: Math.abs(diff), variant: "due-soon" };
     }
 
     function renderDaily() {
