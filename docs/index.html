@@ -1501,6 +1501,7 @@
 
   <script>
     const STORAGE_KEY = "daily-todo-table-v1";
+    const BACKUP_STORAGE_KEY = "daily-todo-table-v1-backup";
     const UNASSIGNED_PROJECT = "未归类";
 
     const state = loadData();
@@ -1788,7 +1789,7 @@
       const hasUnnamed = state.projects.some(isUnnamedProject);
       if (hasUnnamed && !window.confirm("还有未命名项目未处理，仍要继续添加吗？")) return null;
       const project = {
-        id: crypto.randomUUID ? crypto.randomUUID() : `project-${Date.now()}`,
+        id: createId("project"),
         name: "未命名",
         ddl: "",
         scheduleMode: "empty",
@@ -1823,7 +1824,7 @@
         }
       } else {
         state.projects.push({
-          id: crypto.randomUUID ? crypto.randomUUID() : `project-${Date.now()}`,
+          id: createId("project"),
           name,
           ddl,
           scheduleMode: ddl ? "dated" : "empty",
@@ -1960,7 +1961,7 @@
 
     function addBlankTask() {
       const task = {
-        id: crypto.randomUUID ? crypto.randomUUID() : `task-${Date.now()}`,
+        id: createId("task"),
         text: "未命名",
         note: "",
         projectId: "",
@@ -2916,31 +2917,72 @@
     }
 
     function loadData() {
+      const fallback = { tasks: [], projects: [], lastReviewDate: "", loadFailed: false };
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const backupRaw = localStorage.getItem(BACKUP_STORAGE_KEY);
+      let saved = null;
+
       try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        saved = raw ? JSON.parse(raw) : null;
+      } catch {
+        try {
+          saved = backupRaw ? JSON.parse(backupRaw) : null;
+          fallback.loadFailed = true;
+        } catch {
+          return { ...fallback, loadFailed: true };
+        }
+      }
+
+      try {
         if (Array.isArray(saved)) return migrateArrayData(saved);
 
         const data = saved || {};
-        const projects = (Array.isArray(data.projects) ? data.projects : [])
-          .map(normalizeProject)
+        const projects = safeArray(data.projects)
+          .map((project) => safeNormalize(() => normalizeProject(project)))
           .filter(Boolean);
-        const tasks = (Array.isArray(data.tasks) ? data.tasks : []).map((task, index) => normalizeTask({
-          ...task,
-          projectId: task.projectId || migrateProject(projects, task.project, task.projectDdl),
-          order: task.order || index + 1
-        }));
+        const tasks = safeArray(data.tasks)
+          .map((task, index) => safeNormalize(() => normalizeTask({
+            ...(task && typeof task === "object" ? task : {}),
+            projectId: task && task.projectId ? task.projectId : migrateProject(projects, task && task.project, task && task.projectDdl),
+            order: task && task.order ? task.order : index + 1
+          })))
+          .filter(Boolean);
 
         return {
           tasks,
           projects,
-          lastReviewDate: data.lastReviewDate || ""
+          lastReviewDate: data.lastReviewDate || "",
+          loadFailed: false
         };
       } catch {
-        return {
-          tasks: [],
-          projects: [],
-          lastReviewDate: ""
-        };
+        try {
+          if (backupRaw && backupRaw !== raw) {
+            const backup = JSON.parse(backupRaw);
+            localStorage.setItem(STORAGE_KEY, backupRaw);
+            return Array.isArray(backup) ? migrateArrayData(backup) : {
+              tasks: safeArray(backup.tasks).map((task, index) => safeNormalize(() => normalizeTask({
+                ...(task && typeof task === "object" ? task : {}),
+                order: task && task.order ? task.order : index + 1
+              }))).filter(Boolean),
+              projects: safeArray(backup.projects).map((project) => safeNormalize(() => normalizeProject(project))).filter(Boolean),
+              lastReviewDate: backup.lastReviewDate || "",
+              loadFailed: false
+            };
+          }
+        } catch {}
+        return { ...fallback, loadFailed: true };
+      }
+    }
+
+    function safeArray(value) {
+      return Array.isArray(value) ? value : [];
+    }
+
+    function safeNormalize(fn) {
+      try {
+        return fn();
+      } catch {
+        return null;
       }
     }
 
@@ -2954,7 +2996,8 @@
       return {
         tasks,
         projects,
-        lastReviewDate: ""
+        lastReviewDate: "",
+        loadFailed: false
       };
     }
 
@@ -2966,7 +3009,7 @@
       let project = projects.find((item) => item.name === safeName);
       if (!project) {
         project = {
-          id: crypto.randomUUID ? crypto.randomUUID() : `project-${Date.now()}-${projects.length}`,
+          id: createId("project"),
           name: safeName,
           ddl: isValidDateString(projectDdl) ? projectDdl : "",
           scheduleMode: isValidDateString(projectDdl) ? "dated" : "plannedLater",
@@ -2979,6 +3022,11 @@
         project.scheduleMode = "dated";
       }
       return project.id;
+    }
+
+    function createId(prefix) {
+      if (globalThis.crypto && typeof globalThis.crypto.randomUUID === "function") return globalThis.crypto.randomUUID();
+      return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     }
 
     function isValidDateString(value) {
@@ -3007,7 +3055,7 @@
     function normalizeTask(task) {
       const done = Boolean(task.done);
       return {
-        id: task.id || (crypto.randomUUID ? crypto.randomUUID() : `task-${Date.now()}`),
+        id: task.id || createId("task"),
         text: task.text || "",
         note: task.note || "",
         projectId: task.projectId || "",
@@ -3035,7 +3083,7 @@
         ? (name === "未命名" ? "empty" : "plannedLater")
         : (project.scheduleMode || (ddl ? "dated" : (name === "未命名" ? "empty" : "plannedLater")));
       return {
-        id: project.id || (crypto.randomUUID ? crypto.randomUUID() : `project-${Date.now()}`),
+        id: project.id || createId("project"),
         name,
         ddl,
         scheduleMode,
@@ -3120,11 +3168,17 @@
     }
 
     function saveData() {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      if (state.loadFailed) return;
+      const payload = {
         tasks: state.tasks,
         projects: state.projects,
         lastReviewDate: state.lastReviewDate || ""
-      }));
+      };
+      if ((payload.tasks && payload.tasks.length) || (payload.projects && payload.projects.length)) {
+        const current = localStorage.getItem(STORAGE_KEY);
+        if (current) localStorage.setItem(BACKUP_STORAGE_KEY, current);
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     }
 
     function formatDate(date) {
