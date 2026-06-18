@@ -765,36 +765,27 @@
 
     .time-input-row {
       display: grid;
-      grid-template-columns: minmax(180px, 1fr) minmax(150px, 210px);
+      grid-template-columns: minmax(0, 1fr) minmax(180px, 240px);
       gap: 12px;
       align-items: end;
     }
 
-    .minute-input-wrap {
+    .minute-with-unit {
       display: grid;
-      grid-template-columns: 1fr auto;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
       align-items: center;
-      border: 1px solid var(--line);
-      border-radius: 7px;
-      background: #fffdf7;
-      overflow: hidden;
     }
 
-    .minute-input-wrap:focus-within {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px rgba(180, 75, 43, 0.16);
+    .minute-with-unit input {
+      width: 100%;
+      min-width: 0;
     }
 
-    .minute-input-wrap input {
-      border: 0;
-      box-shadow: none;
-      background: transparent;
-    }
-
-    .minute-input-wrap span {
-      padding-right: 12px;
+    .minute-unit {
       color: var(--muted);
       font-weight: 720;
+      white-space: nowrap;
     }
 
     .pie-layout {
@@ -1050,9 +1041,9 @@
         </div>
         <div class="field">
           <label for="completeMinutes">专注时间</label>
-          <div class="minute-input-wrap">
+          <div class="minute-with-unit">
             <input id="completeMinutes" type="number" min="0" step="1" placeholder="输入">
-            <span>分钟</span>
+            <span class="minute-unit">分钟</span>
           </div>
         </div>
       </div>
