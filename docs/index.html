@@ -538,8 +538,10 @@
     }
 
     .metric-button strong {
-      padding-right: 16px;
+      padding-right: 22px;
       color: #2f7e70;
+      font-size: clamp(30px, 3vw, 38px);
+      letter-spacing: 0;
     }
 
     .metric-button:hover {
@@ -1259,7 +1261,7 @@
         </div>
         <button class="metric-button" type="button" id="focusTimeBtn">
           <span>专注时间</span>
-          <strong id="focusTime">0分钟</strong>
+          <strong id="focusTime">0m</strong>
         </button>
       </section>
 
@@ -2290,7 +2292,7 @@
       els.pendingCount.textContent = pending;
       els.doneCount.textContent = done;
       els.doneRate.textContent = total ? `${Math.round((done / total) * 100)}%` : "0%";
-      els.focusTime.textContent = formatDuration(sumMinutes(visibleTasks));
+      els.focusTime.textContent = formatCompactDuration(sumMinutes(visibleTasks));
       renderTaskHeader();
 
       els.taskBody.innerHTML = addTaskRow() + renderTaskRows(visibleTasks);
@@ -2813,6 +2815,15 @@
       if (hours && mins) return `${hours}小时${mins}分钟`;
       if (hours) return `${hours}小时`;
       return `${mins}分钟`;
+    }
+
+    function formatCompactDuration(minutes) {
+      const total = Math.max(0, Number(minutes) || 0);
+      const hours = Math.floor(total / 60);
+      const mins = total % 60;
+      if (hours && mins) return `${hours}h${mins}m`;
+      if (hours) return `${hours}h`;
+      return `${mins}m`;
     }
 
     function openTimePie() {
