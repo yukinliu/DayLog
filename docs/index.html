@@ -204,15 +204,27 @@
       font-weight: 720;
     }
 
+    .project-rail-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 150px;
+      gap: 14px;
+      align-items: stretch;
+    }
+
     .project-rail {
       display: grid;
       grid-auto-flow: column;
-      grid-auto-columns: minmax(238px, calc((100% - 42px) / 4));
+      grid-auto-columns: minmax(218px, calc((100% - 42px) / 4));
       gap: 14px;
       overflow-x: auto;
       overscroll-behavior-x: contain;
       padding: 2px 2px 4px;
       scroll-snap-type: x proximity;
+    }
+
+    .fixed-add-card {
+      width: 150px;
+      min-width: 150px;
     }
 
     .project-card {
@@ -347,9 +359,10 @@
 
     .schedule-editor {
       display: grid;
-      grid-template-columns: minmax(104px, auto) minmax(138px, 1fr);
+      grid-template-columns: minmax(112px, auto) minmax(0, 1fr);
       gap: 8px;
       align-items: center;
+      max-width: 100%;
     }
 
     .days-left {
@@ -605,7 +618,9 @@
     .inline-input,
     .inline-select,
     .inline-date,
-    .inline-time {
+    .inline-time,
+    .inline-time-editor select,
+    .inline-date-editor select {
       width: 100%;
       min-width: 0;
       min-height: 34px;
@@ -620,13 +635,40 @@
       font-size: 16px;
     }
 
-    .inline-time {
-      width: 126px;
-      min-width: 126px;
-      padding: 6px 10px;
-      font-size: 14px;
+    .inline-time-editor,
+    .inline-date-editor {
+      display: inline-grid;
+      align-items: center;
+      gap: 5px;
+      width: max-content;
+      max-width: 100%;
+      color: inherit;
+      font-weight: 720;
+    }
+
+    .inline-time-editor {
+      grid-template-columns: minmax(70px, auto) auto minmax(56px, auto);
+      padding: 4px;
+      border: 1px solid rgba(227, 200, 155, 0.65);
+      border-radius: 8px;
+      background: rgba(255, 253, 247, 0.8);
+    }
+
+    .inline-date-editor {
+      grid-template-columns: minmax(78px, auto) minmax(58px, auto) minmax(58px, auto);
+    }
+
+    .project-date-editor {
+      grid-column: 1 / -1;
+    }
+
+    .inline-time-editor select,
+    .inline-date-editor select {
+      width: auto;
+      min-width: 0;
+      padding: 5px 7px;
+      font-size: 13px;
       font-variant-numeric: tabular-nums;
-      letter-spacing: 0;
     }
 
     .inline-field-wrap {
@@ -1241,8 +1283,18 @@
         min-width: 150px;
       }
 
+      .project-rail-layout {
+        grid-template-columns: minmax(0, 1fr) 118px;
+        gap: 10px;
+      }
+
       .project-rail {
-        grid-auto-columns: minmax(238px, 84vw);
+        grid-auto-columns: minmax(218px, 82vw);
+      }
+
+      .fixed-add-card {
+        width: 118px;
+        min-width: 118px;
       }
 
       .project-list-item {
@@ -1277,7 +1329,12 @@
           <span id="projectHint"></span>
         </span>
       </div>
-      <div class="project-rail" id="projectRail"></div>
+      <div class="project-rail-layout">
+        <div class="project-rail" id="projectRail"></div>
+        <button class="project-card add-card fixed-add-card" type="button" id="addProjectBtn">
+          <span>+ 添加项目</span>
+        </button>
+      </div>
     </section>
 
     <section class="main-content" id="dailyView">
@@ -1466,6 +1523,7 @@
       projectHint: document.querySelector("#projectHint"),
       manageProjectsBtn: document.querySelector("#manageProjectsBtn"),
       projectRail: document.querySelector("#projectRail"),
+      addProjectBtn: document.querySelector("#addProjectBtn"),
       dailyView: document.querySelector("#dailyView"),
       calendarView: document.querySelector("#calendarView"),
       calendarTitle: document.querySelector("#calendarTitle"),
@@ -1536,6 +1594,7 @@
       els.projectRail.addEventListener("click", handleProjectRailClick);
       els.projectRail.addEventListener("dblclick", editProjectField);
       els.projectRail.addEventListener("contextmenu", editProjectField);
+      els.addProjectBtn.addEventListener("click", createDefaultProject);
       els.manageProjectsBtn.addEventListener("click", openProjectList);
       els.projectForm.addEventListener("submit", saveProject);
       els.projectCancelBtn.addEventListener("click", () => els.projectDialog.close());
@@ -1622,10 +1681,6 @@
         return;
       }
 
-      if (event.target.closest("[data-add-project]")) {
-        createDefaultProject();
-        return;
-      }
 
       if (!button || !card) return;
       const project = findProject(card.dataset.projectId);
@@ -1674,11 +1729,12 @@
       `;
       modeSelect.value = getProjectScheduleMode(project) === "plannedLater" ? "plannedLater" : "dated";
 
-      const dateInput = document.createElement("input");
-      dateInput.className = "inline-date";
-      dateInput.type = "date";
-      dateInput.value = project.ddl || "";
-      dateInput.hidden = modeSelect.value !== "dated";
+      const dateEditor = createDatePartsEditor(project.ddl || "", {
+        className: "inline-date-editor project-date-editor",
+        startYear: new Date().getFullYear() - 1,
+        endYear: new Date().getFullYear() + 30
+      });
+      dateEditor.el.hidden = modeSelect.value !== "dated";
 
       let finished = false;
       const save = () => {
@@ -1687,12 +1743,15 @@
         if (modeSelect.value === "plannedLater") {
           project.scheduleMode = "plannedLater";
           project.ddl = "";
-        } else if (dateInput.value) {
-          project.scheduleMode = "dated";
-          project.ddl = dateInput.value;
         } else {
-          project.scheduleMode = "empty";
-          project.ddl = "";
+          const value = dateEditor.getValue();
+          if (value) {
+            project.scheduleMode = "dated";
+            project.ddl = value;
+          } else {
+            project.scheduleMode = "empty";
+            project.ddl = "";
+          }
         }
         saveData();
         render();
@@ -1700,11 +1759,10 @@
       };
 
       modeSelect.addEventListener("change", () => {
-        dateInput.hidden = modeSelect.value !== "dated";
+        dateEditor.el.hidden = modeSelect.value !== "dated";
         if (modeSelect.value === "plannedLater") save();
-        else dateInput.focus();
+        else dateEditor.focus();
       });
-      dateInput.addEventListener("change", save);
       wrapper.addEventListener("keydown", (event) => {
         if (event.key === "Enter") save();
         if (event.key === "Escape") {
@@ -1717,7 +1775,7 @@
         if (!wrapper.contains(document.activeElement)) save();
       }));
 
-      wrapper.append(modeSelect, dateInput);
+      wrapper.append(modeSelect, dateEditor.el);
       fieldEl.replaceChildren(wrapper);
       modeSelect.focus();
     }
@@ -2035,8 +2093,8 @@
       const configByField = {
         text: { type: "text", value: task.text || "", save: (value) => { task.text = value.trim() || "未命名"; } },
         projectId: { type: "select", value: task.projectId || "", save: (value) => { task.projectId = value; } },
-        plannedStart: { type: "time", value: task.plannedStart || "", save: (value) => { task.plannedStart = value; task.timeBucket = value ? "" : ""; task.manualOrder = false; } },
-        targetDate: { type: "date", value: task.targetDate || formatDate(new Date()), save: (value) => { task.targetDate = value || formatDate(new Date()); } }
+        plannedStart: { type: "time", value: task.plannedStart || "", save: (value) => { task.plannedStart = isValidTimeString(value) ? value : ""; task.timeBucket = value ? "" : ""; task.manualOrder = false; } },
+        targetDate: { type: "date", value: task.targetDate || formatDate(new Date()), save: (value) => { task.targetDate = isValidDateString(value) ? value : formatDate(new Date()); } }
       };
       const config = configByField[field];
       if (!config) return;
@@ -2047,16 +2105,144 @@
       });
     }
 
+    function startTimePartsEdit(fieldEl, config, afterSave) {
+      const editor = createTimePartsEditor(config.value || "");
+      let finished = false;
+      const finish = (shouldSave) => {
+        if (finished) return;
+        finished = true;
+        if (shouldSave) {
+          config.save(editor.getValue());
+          afterSave();
+        } else {
+          render();
+        }
+      };
+      editor.el.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") finish(true);
+        if (event.key === "Escape") finish(false);
+      });
+      editor.el.addEventListener("focusout", () => setTimeout(() => {
+        if (!editor.el.contains(document.activeElement)) finish(true);
+      }));
+      fieldEl.replaceChildren(editor.el);
+      editor.focus();
+    }
+
+    function startDatePartsEdit(fieldEl, config, afterSave) {
+      const currentYear = new Date().getFullYear();
+      const editor = createDatePartsEditor(config.value || formatDate(new Date()), {
+        className: "inline-date-editor task-date-editor",
+        startYear: currentYear - 10,
+        endYear: currentYear + 10
+      });
+      let finished = false;
+      const finish = (shouldSave) => {
+        if (finished) return;
+        finished = true;
+        if (shouldSave) {
+          config.save(editor.getValue() || config.value || formatDate(new Date()));
+          afterSave();
+        } else {
+          render();
+        }
+      };
+      editor.el.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") finish(true);
+        if (event.key === "Escape") finish(false);
+      });
+      editor.el.addEventListener("focusout", () => setTimeout(() => {
+        if (!editor.el.contains(document.activeElement)) finish(true);
+      }));
+      fieldEl.replaceChildren(editor.el);
+      editor.focus();
+    }
+
+    function createTimePartsEditor(value) {
+      const safe = isValidTimeString(value) ? value : "";
+      const [selectedHour = "", selectedMinute = "00"] = safe ? safe.split(":") : ["", "00"];
+      const wrapper = document.createElement("div");
+      wrapper.className = "inline-time-editor";
+      const hourSelect = document.createElement("select");
+      const minuteSelect = document.createElement("select");
+      hourSelect.innerHTML = `<option value="">未安排</option>` + Array.from({ length: 24 }, (_, hour) => {
+        const value = String(hour).padStart(2, "0");
+        return `<option value="${value}">${value}</option>`;
+      }).join("");
+      minuteSelect.innerHTML = Array.from({ length: 12 }, (_, index) => {
+        const value = String(index * 5).padStart(2, "0");
+        return `<option value="${value}">${value}</option>`;
+      }).join("");
+      hourSelect.value = selectedHour;
+      minuteSelect.value = selectedMinute;
+      minuteSelect.disabled = !selectedHour;
+      hourSelect.addEventListener("change", () => {
+        minuteSelect.disabled = !hourSelect.value;
+        if (hourSelect.value && !minuteSelect.value) minuteSelect.value = "00";
+      });
+      wrapper.append(hourSelect, document.createTextNode(":"), minuteSelect);
+      return {
+        el: wrapper,
+        focus: () => hourSelect.focus(),
+        getValue: () => hourSelect.value ? `${hourSelect.value}:${minuteSelect.value || "00"}` : ""
+      };
+    }
+
+    function createDatePartsEditor(value, options = {}) {
+      const currentYear = new Date().getFullYear();
+      const safeValue = isValidDateString(value) ? value : formatDate(new Date());
+      const date = parseDateParts(safeValue);
+      const startYear = Math.min(options.startYear || currentYear - 5, date.year);
+      const endYear = Math.max(options.endYear || currentYear + 10, date.year);
+      const wrapper = document.createElement("div");
+      wrapper.className = options.className || "inline-date-editor";
+      const yearSelect = document.createElement("select");
+      const monthSelect = document.createElement("select");
+      const daySelect = document.createElement("select");
+      yearSelect.innerHTML = rangeOptions(startYear, endYear, date.year, "年");
+      monthSelect.innerHTML = rangeOptions(1, 12, date.month, "月");
+      const syncDays = () => {
+        const maxDay = daysInMonth(Number(yearSelect.value), Number(monthSelect.value));
+        const currentDay = Math.min(Number(daySelect.value) || date.day, maxDay);
+        daySelect.innerHTML = rangeOptions(1, maxDay, currentDay, "日");
+      };
+      yearSelect.addEventListener("change", syncDays);
+      monthSelect.addEventListener("change", syncDays);
+      syncDays();
+      wrapper.append(yearSelect, monthSelect, daySelect);
+      return {
+        el: wrapper,
+        focus: () => yearSelect.focus(),
+        getValue: () => {
+          const year = Number(yearSelect.value);
+          const month = Number(monthSelect.value);
+          const day = Number(daySelect.value);
+          const value = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          return isValidDateString(value) ? value : "";
+        }
+      };
+    }
+
+    function rangeOptions(start, end, selected, suffix = "") {
+      return Array.from({ length: end - start + 1 }, (_, index) => {
+        const value = start + index;
+        return `<option value="${value}"${value === Number(selected) ? " selected" : ""}>${value}${suffix}</option>`;
+      }).join("");
+    }
+
     function startInlineEdit(fieldEl, config, afterSave) {
       if (fieldEl.querySelector("input, select")) return;
+      if (config.type === "time") {
+        startTimePartsEdit(fieldEl, config, afterSave);
+        return;
+      }
+      if (config.type === "date") {
+        startDatePartsEdit(fieldEl, config, afterSave);
+        return;
+      }
       const editor = document.createElement(config.type === "select" ? "select" : "input");
       editor.className = config.type === "select" ? "inline-select" : "inline-input";
       if (config.type !== "select") editor.type = config.type;
-      if (config.type === "time") {
-        editor.step = 300;
-        editor.className = "inline-time";
-      }
-      if (config.type === "date") editor.className = "inline-date";
       if (config.type === "select") editor.innerHTML = projectOptionsHtml(config.value);
       editor.value = config.value || "";
 
@@ -2263,11 +2449,10 @@
         .sort(compareProjects);
       const plannedLaterCount = state.projects.filter((project) => isPlannedLater(project)).length;
       const cardCount = draftProjects.length + ddlProjects.length + (plannedLaterCount ? 1 : 0);
-      els.projectHint.textContent = cardCount > 3 ? "左右滑动查看更多" : "";
+      els.projectHint.textContent = cardCount > 4 ? "左右滑动查看更多" : "";
       els.projectRail.innerHTML = draftProjects.map(projectCard).join("")
         + ddlProjects.map(projectCard).join("")
-        + (plannedLaterCount ? otherProjectCard(plannedLaterCount) : "")
-        + addProjectCard();
+        + (plannedLaterCount ? otherProjectCard(plannedLaterCount) : "");
     }
 
     function projectCard(project) {
@@ -2312,6 +2497,7 @@
     }
 
     function getDdlCountdown(dateString) {
+      if (!isValidDateString(dateString)) return { label: "", variant: "waiting-project", longRange: false };
       const today = new Date(`${formatDate(new Date())}T00:00:00`);
       const ddl = new Date(`${dateString}T00:00:00`);
       const diff = Math.ceil((ddl - today) / 86400000);
@@ -2678,7 +2864,7 @@
     }
 
     function hasProjectDdl(project) {
-      return getProjectScheduleMode(project) === "dated" && Boolean(project.ddl);
+      return getProjectScheduleMode(project) === "dated" && isValidDateString(project.ddl);
     }
 
     function isPlannedLater(project) {
@@ -2791,6 +2977,29 @@
       return project.id;
     }
 
+    function isValidDateString(value) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ""))) return false;
+      const { year, month, day } = parseDateParts(value);
+      if (year < 1900 || year > 2200) return false;
+      const date = new Date(`${value}T00:00:00`);
+      return date.getFullYear() === year && date.getMonth() + 1 === month && date.getDate() === day;
+    }
+
+    function parseDateParts(value) {
+      const [year, month, day] = String(value || "").split("-").map((part) => Number.parseInt(part, 10));
+      return { year, month, day };
+    }
+
+    function daysInMonth(year, month) {
+      return new Date(year, month, 0).getDate();
+    }
+
+    function isValidTimeString(value) {
+      if (!/^\d{2}:\d{2}$/.test(String(value || ""))) return false;
+      const [hour, minute] = value.split(":").map((part) => Number.parseInt(part, 10));
+      return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 55 && minute % 5 === 0;
+    }
+
     function normalizeTask(task) {
       const done = Boolean(task.done);
       return {
@@ -2798,13 +3007,13 @@
         text: task.text || "",
         note: task.note || "",
         projectId: task.projectId || "",
-        plannedStart: task.plannedStart || "",
+        plannedStart: isValidTimeString(task.plannedStart) ? task.plannedStart : "",
         timeBucket: task.timeBucket || "",
-        targetDate: task.targetDate || formatDate(new Date()),
+        targetDate: isValidDateString(task.targetDate) ? task.targetDate : formatDate(new Date()),
         done,
         createdAt: task.createdAt || new Date().toISOString(),
         completedAt: task.completedAt || null,
-        completedDate: task.completedDate || (done && task.completedAt ? formatDate(task.completedAt) : ""),
+        completedDate: isValidDateString(task.completedDate) ? task.completedDate : (done && task.completedAt ? formatDate(task.completedAt) : ""),
         durationMinutes: Math.max(0, Number.parseInt(task.durationMinutes || "0", 10) || 0),
         completionRating: task.completionRating || "",
         manualOrder: Boolean(task.manualOrder),
@@ -2817,8 +3026,10 @@
     function normalizeProject(project) {
       if (!project || !project.name) return null;
       const name = project.name === "未命名项目" ? "未命名" : project.name;
-      const ddl = project.ddl || "";
-      const scheduleMode = project.scheduleMode || (ddl ? "dated" : (name === "未命名" ? "empty" : "plannedLater"));
+      const ddl = isValidDateString(project.ddl) ? project.ddl : "";
+      const scheduleMode = project.scheduleMode === "dated" && !ddl
+        ? (name === "未命名" ? "empty" : "plannedLater")
+        : (project.scheduleMode || (ddl ? "dated" : (name === "未命名" ? "empty" : "plannedLater")));
       return {
         id: project.id || (crypto.randomUUID ? crypto.randomUUID() : `project-${Date.now()}`),
         name,
@@ -2829,7 +3040,7 @@
     }
 
     function formatPlannedTime(time) {
-      if (!time) return "未安排";
+      if (!isValidTimeString(time)) return "未安排";
       const [hour, minute] = time.split(":");
       return `${hour}:${minute}`;
     }
@@ -2880,7 +3091,7 @@
         return;
       }
 
-      const colors = ["#b94f32", "#d28a32", "#94610f", "#287f74", "#3f8567", "#80634c"];
+      const colors = ["#4f8f76", "#d6a24a", "#b96844", "#2f7f78", "#a37a2d", "#7e6b56"];
       let cursor = 0;
       const slices = groups.map((group, index) => {
         const minutes = sumMinutes(group.tasks);
@@ -2927,6 +3138,7 @@
     }
 
     function friendlyDate(dateString) {
+      if (!isValidDateString(dateString)) return "未设置日期";
       const date = new Date(`${dateString}T00:00:00`);
       return date.toLocaleDateString("zh-CN", {
         month: "long",
