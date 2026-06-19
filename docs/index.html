@@ -234,12 +234,16 @@
     .project-rail {
       display: grid;
       grid-auto-flow: column;
-      grid-auto-columns: max(210px, calc((100% - 60px) / 4));
+      grid-auto-columns: max(210px, calc((100% - 42px) / 4));
       gap: 14px;
       overflow-x: auto;
       overscroll-behavior-x: contain;
       padding: 2px 2px 4px;
       scroll-snap-type: x proximity;
+    }
+
+    .project-rail-layout.has-overflow .project-rail {
+      grid-auto-columns: max(210px, calc((100% - 60px) / 4));
     }
 
     .fixed-add-card {
@@ -536,14 +540,14 @@
       align-items: center;
       justify-content: space-between;
       width: 100%;
-      min-height: 42px;
-      padding: 10px 12px;
+      min-height: 48px;
+      padding: 12px 14px;
       color: var(--muted);
       border: 0;
-      background: linear-gradient(90deg, rgba(255, 244, 224, 0.9), rgba(255, 252, 246, 0.72));
+      background: linear-gradient(90deg, rgba(255, 244, 224, 0.94), rgba(255, 252, 246, 0.76));
       text-align: left;
-      font-size: 13px;
-      font-weight: 780;
+      font-size: 15px;
+      font-weight: 820;
       cursor: pointer;
     }
 
@@ -555,13 +559,13 @@
 
     .project-list-heading .chevron {
       color: var(--accent);
-      font-size: 14px;
+      font-size: 16px;
       line-height: 1;
     }
 
     .project-list-heading strong {
       color: var(--text);
-      font-size: 15px;
+      font-size: 17px;
     }
 
     .project-list-heading[aria-expanded="true"] {
@@ -2656,9 +2660,6 @@
           <div class="project-content">
             <div class="project-name" data-project-field="name" title="双击或右键修改项目名称">${escapeHtml(project.name)}</div>
             ${scheduleMarkup}
-          </div>
-          <div class="project-card-actions">
-            <button class="icon-button" type="button" data-project-action="delete" title="删除项目" aria-label="删除项目">×</button>
           </div>
         </div>
       `;
