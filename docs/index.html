@@ -1579,8 +1579,22 @@
     }
 
     .day-card.outside-range {
+      opacity: 0.54;
+      background: rgba(255, 253, 247, 0.54);
+      border-style: dashed;
+    }
+
+    .calendar-spacer {
       min-height: 34px;
       visibility: hidden;
+      pointer-events: none;
+    }
+
+    .day-card.outside-range:hover,
+    .day-card[data-date]:hover {
+      opacity: 1;
+      border-color: rgba(185, 79, 50, 0.42);
+      box-shadow: 0 8px 18px rgba(91, 58, 24, 0.08);
     }
 
     .day-card.today {
@@ -3608,7 +3622,7 @@
       selectSingleDate(card.dataset.date);
     }
 
-    function dayCard(date) {
+    function dayCard(date, inSelectedRange = true) {
       const today = formatDate(new Date());
       const tasks = state.tasks.filter((task) => task.targetDate === date);
       const projectGroups = groupTasksByProject(tasks);
@@ -3617,7 +3631,7 @@
         : `<div class="empty">没有记录</div>`;
 
       return `
-        <article class="day-card ${date === today ? "today" : ""}" data-date="${date}" tabindex="0" role="button" aria-label="查看 ${friendlyDate(date)} 的复盘记录">
+        <article class="day-card ${date === today ? "today" : ""} ${inSelectedRange ? "" : "outside-range"}" data-date="${date}" tabindex="0" role="button" aria-label="查看 ${friendlyDate(date)} 的复盘记录">
           <div class="day-head">
             <span>${friendlyDate(date)}</span>
             <span class="day-count">${tasks.length} 条</span>
@@ -3635,10 +3649,10 @@
         const first = new Date(year, month, 1);
         const last = new Date(year, month + 1, 0);
         const cells = [];
-        for (let i = 0; i < first.getDay(); i += 1) cells.push(`<div class="day-card outside-range"></div>`);
+        for (let i = 0; i < first.getDay(); i += 1) cells.push(`<div class="day-card calendar-spacer" aria-hidden="true"></div>`);
         for (let day = 1; day <= last.getDate(); day += 1) {
           const date = formatDate(new Date(year, month, day));
-          cells.push(date >= start && date <= end ? dayCard(date) : `<div class="day-card outside-range"></div>`);
+          cells.push(dayCard(date, date >= start && date <= end));
         }
         return `
           <section class="month-section">
