@@ -687,25 +687,40 @@
 
     .day-state-strip {
       display: grid;
-      grid-template-columns: minmax(170px, 0.8fr) minmax(0, 1.4fr) auto;
-      gap: 12px;
+      grid-template-columns: minmax(190px, 0.9fr) minmax(0, 1.8fr) auto;
+      gap: 14px;
       align-items: center;
-      min-height: 58px;
-      padding: 12px 14px;
-      border: 1px solid rgba(227, 200, 155, 0.56);
-      border-radius: 9px;
-      background: linear-gradient(135deg, var(--mood-bg, rgba(255, 250, 241, 0.9)), rgba(255, 253, 247, 0.92));
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+      min-height: 68px;
+      margin: 0 -8px 2px;
+      padding: 13px 16px;
+      border: 1px solid rgba(227, 200, 155, 0.58);
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--mood-bg, rgba(255, 250, 241, 0.9)), rgba(255, 253, 247, 0.94));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.82), 0 10px 22px rgba(91, 58, 24, 0.05);
+    }
+
+    .day-state-strip.range-mode {
+      grid-template-columns: minmax(260px, 1.35fr) minmax(0, 1fr);
+      cursor: default;
+    }
+
+    .day-state-strip.range-mode #openDayStateBtn {
+      display: none;
+    }
+
+    .mood-summary,
+    .thought-summary {
+      min-width: 0;
+      cursor: pointer;
     }
 
     .mood-summary {
       display: grid;
-      gap: 3px;
-      min-width: 0;
+      gap: 4px;
     }
 
     .mood-summary span,
-    .thought-summary span {
+    .thought-summary > span {
       color: var(--muted);
       font-size: 12px;
       font-weight: 720;
@@ -713,36 +728,69 @@
 
     .mood-summary strong {
       color: var(--mood-color, var(--text));
-      font-size: 18px;
-      line-height: 1.2;
+      font-size: 19px;
+      line-height: 1.16;
     }
 
     .thought-summary {
-      min-width: 0;
+      display: grid;
+      gap: 4px;
       color: var(--text);
-      font-weight: 700;
+      font-weight: 760;
+      overflow: hidden;
+    }
+
+    .thought-line {
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
+      min-width: 0;
+      white-space: nowrap;
+    }
+
+    .thought-time {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .thought-text {
+      min-width: 0;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .mood-dots {
-      display: flex;
-      gap: 5px;
-      align-items: center;
-      min-width: 0;
+    .mood-curve {
+      width: 100%;
+      min-height: 48px;
     }
 
-    .mood-dot {
-      width: 16px;
-      height: 16px;
-      border-radius: 999px;
-      background: var(--dot-color, #e7d8bd);
-      box-shadow: inset 0 0 0 1px rgba(83, 48, 22, 0.12);
+    .mood-curve svg {
+      display: block;
+      width: 100%;
+      height: 54px;
+      overflow: visible;
     }
 
-    .mood-dot.empty {
-      background: rgba(138, 104, 79, 0.16);
+    .mood-curve path {
+      fill: none;
+      stroke: var(--mood-color, #4f8f76);
+      stroke-width: 3;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .mood-curve circle {
+      fill: var(--mood-color, #4f8f76);
+      stroke: #fffaf0;
+      stroke-width: 2;
+    }
+
+    .mood-curve .curve-guide {
+      stroke: rgba(138, 104, 79, 0.16);
+      stroke-width: 1;
     }
 
     #dayStateDialog {
@@ -767,10 +815,11 @@
     }
 
     .mood-picker label {
+      position: relative;
       display: grid;
       place-items: center;
-      min-height: 50px;
-      padding: 6px;
+      min-height: 54px;
+      padding: 7px 6px;
       color: var(--mood-option-color, var(--muted));
       border: 1px solid rgba(227, 200, 155, 0.66);
       border-radius: 8px;
@@ -779,6 +828,7 @@
       font-size: 12px;
       font-weight: 760;
       cursor: pointer;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
     }
 
     .mood-picker input {
@@ -788,9 +838,22 @@
     }
 
     .mood-picker label:has(input:checked) {
+      color: var(--accent);
       border-color: var(--accent);
-      box-shadow: inset 0 0 0 1px rgba(185, 79, 50, 0.16), 0 8px 18px rgba(91, 58, 24, 0.08);
-      transform: translateY(-1px);
+      box-shadow: inset 0 0 0 2px rgba(185, 79, 50, 0.18), 0 10px 22px rgba(91, 58, 24, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .mood-picker label:has(input:checked)::after {
+      content: "";
+      position: absolute;
+      right: 8px;
+      top: 8px;
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(185, 79, 50, 0.14);
     }
 
     #thoughtText {
@@ -800,25 +863,120 @@
 
     .thought-list {
       display: grid;
-      gap: 8px;
-      max-height: 180px;
+      gap: 5px;
+      max-height: 150px;
       overflow: auto;
       padding-right: 2px;
     }
 
     .thought-item {
       display: grid;
-      gap: 4px;
-      padding: 9px 10px;
-      border: 1px solid rgba(227, 200, 155, 0.54);
-      border-radius: 8px;
-      background: rgba(255, 253, 247, 0.72);
+      grid-template-columns: 9px 44px minmax(0, 1fr);
+      gap: 8px;
+      align-items: baseline;
+      padding: 5px 2px;
+      color: var(--text);
+    }
+
+    .thought-item::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      margin-top: 7px;
+      border-radius: 999px;
+      background: rgba(79, 143, 118, 0.72);
     }
 
     .thought-item time {
       color: var(--muted);
+      font-size: 11px;
+      font-weight: 760;
+    }
+
+    .thought-item div {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    #noteDetailDialog {
+      width: min(760px, calc(100vw - 28px));
+    }
+
+    .note-detail-body {
+      display: grid;
+      gap: 12px;
+    }
+
+    .mood-chart {
+      padding: 10px;
+      border: 1px solid rgba(227, 200, 155, 0.58);
+      border-radius: 9px;
+      background: linear-gradient(135deg, rgba(255, 253, 247, 0.96), rgba(249, 241, 224, 0.72));
+    }
+
+    .mood-chart svg {
+      display: block;
+      width: 100%;
+      height: 220px;
+    }
+
+    .thought-day {
+      border: 1px solid rgba(227, 200, 155, 0.54);
+      border-radius: 9px;
+      background: rgba(255, 253, 247, 0.76);
+      overflow: hidden;
+    }
+
+    .thought-day summary {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      color: var(--text);
+      font-weight: 800;
+      cursor: pointer;
+      background: linear-gradient(90deg, rgba(255, 246, 229, 0.86), rgba(255, 253, 247, 0.8));
+    }
+
+    .thought-day .thought-list {
+      padding: 6px 12px 10px;
+    }
+
+    .sort-header {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-weight: 820;
+      cursor: pointer;
+    }
+
+    .sort-header::after {
+      content: "↕";
+      color: rgba(138, 104, 79, 0.42);
+      font-size: 11px;
+    }
+
+    .sort-header.active::after {
+      content: attr(data-mark);
+      color: var(--accent);
+    }
+
+    .project-section-row td {
+      height: 28px;
+      padding: 4px 16px;
+      color: rgba(138, 104, 79, 0.58);
       font-size: 12px;
-      font-weight: 720;
+      font-weight: 760;
+      text-align: right;
+      background: linear-gradient(90deg, rgba(255, 253, 247, 0), rgba(247, 236, 215, 0.56));
+      border-bottom: 1px solid rgba(227, 200, 155, 0.36);
     }
 
     .status-panel {
@@ -1666,6 +1824,7 @@
       .topbar,
       .status-panel,
       .day-state-strip,
+      .day-state-strip.range-mode,
       .mood-picker {
         grid-template-columns: 1fr;
       }
@@ -1933,6 +2092,16 @@
     </form>
   </dialog>
 
+  <dialog id="noteDetailDialog">
+    <div class="dialog-body">
+      <h2 id="noteDetailTitle">状态记录</h2>
+      <div class="note-detail-body" id="noteDetailBody"></div>
+      <div class="dialog-actions">
+        <button class="primary" type="button" id="noteDetailCloseBtn">关闭</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="timePieDialog">
     <div class="dialog-body">
       <h2 id="timePieTitle">时间分布</h2>
@@ -1963,6 +2132,8 @@
     state.editingProjectId = null;
     state.editingTaskId = null;
     state.ratingFilter = "all";
+    state.sortKey = "";
+    state.sortDir = "asc";
     state.draggingTaskId = null;
     state.draggingProjectKey = null;
     state.mergePanelOpen = false;
@@ -1991,6 +2162,10 @@
       thoughtText: document.querySelector("#thoughtText"),
       thoughtList: document.querySelector("#thoughtList"),
       dayStateCancelBtn: document.querySelector("#dayStateCancelBtn"),
+      noteDetailDialog: document.querySelector("#noteDetailDialog"),
+      noteDetailTitle: document.querySelector("#noteDetailTitle"),
+      noteDetailBody: document.querySelector("#noteDetailBody"),
+      noteDetailCloseBtn: document.querySelector("#noteDetailCloseBtn"),
       calendarView: document.querySelector("#calendarView"),
       calendarTitle: document.querySelector("#calendarTitle"),
       calendarGrid: document.querySelector("#calendarGrid"),
@@ -2054,8 +2229,14 @@
       els.rangeEnd.addEventListener("change", updateDateControls);
       els.showAllBtn.addEventListener("click", toggleAll);
       els.openDayStateBtn.addEventListener("click", openDayStateDialog);
+      els.moodSummary.addEventListener("click", handleMoodSummaryClick);
+      els.thoughtSummary.addEventListener("click", handleThoughtSummaryClick);
+      els.thoughtSummary.addEventListener("mouseover", scheduleHoverTooltip);
+      els.thoughtSummary.addEventListener("mousemove", moveHoverTooltip);
+      els.thoughtSummary.addEventListener("mouseout", hideHoverTooltip);
       els.dayStateForm.addEventListener("submit", saveDayState);
       els.dayStateCancelBtn.addEventListener("click", () => els.dayStateDialog.close());
+      els.noteDetailCloseBtn.addEventListener("click", () => els.noteDetailDialog.close());
 
       els.projectRail.addEventListener("click", handleProjectRailClick);
       els.projectRail.addEventListener("dblclick", editProjectField);
@@ -2076,6 +2257,7 @@
       els.mergeUndoBtn.addEventListener("click", undoLastMerge);
 
       els.toggleTodoViewBtn.addEventListener("click", toggleTodoListView);
+      els.taskHead.addEventListener("click", handleHeaderSort);
       els.taskBody.addEventListener("click", handleTaskClick);
       els.taskBody.addEventListener("mouseover", scheduleHoverTooltip);
       els.taskBody.addEventListener("mousemove", moveHoverTooltip);
@@ -2595,11 +2777,12 @@
 
     function scheduleHoverTooltip(event) {
       const target = event.target.closest("[data-tooltip]");
-      if (!target || !els.taskBody.contains(target) || !isTextOverflowing(target)) return;
+      const inTooltipArea = els.taskBody.contains(target) || els.thoughtSummary.contains(target);
+      if (!target || !inTooltipArea || (!target.dataset.tooltipAlways && !isTextOverflowing(target))) return;
       tooltipTarget = target;
       clearTimeout(tooltipTimer);
       tooltipTimer = setTimeout(() => {
-        if (tooltipTarget !== target || !isTextOverflowing(target)) return;
+        if (tooltipTarget !== target || (!target.dataset.tooltipAlways && !isTextOverflowing(target))) return;
         els.hoverTooltip.textContent = target.dataset.tooltip;
         els.hoverTooltip.hidden = false;
         positionHoverTooltip(event);
@@ -2834,6 +3017,8 @@
     }
 
     function resetDefaultSort() {
+      state.sortKey = "";
+      state.sortDir = "asc";
       if (state.todoListView === "project") {
         state.tasks.forEach((task) => {
           task.projectManualOrder = false;
@@ -2965,9 +3150,12 @@
     }
 
     function sortVisibleTasks(tasks) {
-      return [...tasks].sort((a, b) => state.todoListView === "project"
-        ? compareProjectViewTasks(a, b, tasks)
-        : compareTasks(a, b));
+      return [...tasks].sort((a, b) => {
+        if (state.sortKey) return compareTasksByHeader(a, b);
+        return state.todoListView === "project"
+          ? compareProjectViewTasks(a, b, tasks)
+          : compareTasks(a, b);
+      });
     }
 
 
@@ -2989,27 +3177,47 @@
 
     function renderDayStateStrip() {
       const notes = getNotesInCurrentRange();
-      const isSingle = state.viewMode === "date" || !state.rangeEnd;
-      const selectedNote = getDayNote(state.selectedDate);
+      const isSingle = isSingleDateContext();
       if (isSingle) {
-        const mood = getMoodOption(selectedNote.mood);
+        const note = getDayNote(state.selectedDate);
+        const mood = getMoodOption(note.mood);
+        const latest = note.thoughts[0];
+        els.dayStateStrip.classList.remove("range-mode");
         els.dayStateStrip.style.setProperty("--mood-bg", mood.bg);
         els.dayStateStrip.style.setProperty("--mood-color", mood.color);
         els.moodSummary.innerHTML = `<span>${friendlyDate(state.selectedDate)}</span><strong>${mood.label}</strong>`;
-        const latest = selectedNote.thoughts[0];
-        els.thoughtSummary.innerHTML = latest
-          ? `<span>最近想法</span>${escapeHtml(formatThoughtTime(latest.createdAt))} · ${escapeHtml(latest.text)}`
-          : `<span>想法记录</span>今天还没有留下想法`;
+        if (latest) {
+          const tooltip = note.thoughts.map((item) => `${formatThoughtTime(item.createdAt)} · ${item.text}`).join("\n");
+          els.thoughtSummary.dataset.tooltip = tooltip;
+          els.thoughtSummary.dataset.tooltipAlways = "true";
+          els.thoughtSummary.innerHTML = `
+            <span>最近想法</span>
+            <div class="thought-line"><time class="thought-time">${escapeHtml(formatThoughtTime(latest.createdAt))}</time><span class="thought-text">${escapeHtml(latest.text)}</span></div>
+          `;
+        } else {
+          delete els.thoughtSummary.dataset.tooltip;
+          delete els.thoughtSummary.dataset.tooltipAlways;
+          els.thoughtSummary.innerHTML = `<span>想法记录</span><div class="thought-line"><span class="thought-text">今天还没有留下想法</span></div>`;
+        }
+        els.openDayStateBtn.hidden = false;
         els.openDayStateBtn.textContent = "记录状态";
         return;
       }
-      els.dayStateStrip.style.setProperty("--mood-bg", "rgba(255, 250, 241, 0.9)");
-      els.dayStateStrip.style.setProperty("--mood-color", "var(--text)");
+
       const mooded = notes.filter((note) => note.mood);
-      const thoughts = notes.reduce((count, note) => count + note.thoughts.length, 0);
-      els.moodSummary.innerHTML = `<span>${getCurrentRangeLabel()}</span><strong>${mooded.length ? `${mooded.length} 天有状态` : "暂无状态"}</strong>`;
-      els.thoughtSummary.innerHTML = renderMoodDots(notes) + `<span>想法记录</span>这个区间有 ${thoughts} 条想法`;
-      els.openDayStateBtn.textContent = "查看记录";
+      const thoughtDays = notes.filter((note) => note.thoughts.length).length;
+      els.dayStateStrip.classList.add("range-mode");
+      els.dayStateStrip.style.setProperty("--mood-bg", "rgba(255, 250, 241, 0.9)");
+      els.dayStateStrip.style.setProperty("--mood-color", "var(--accent-strong)");
+      els.moodSummary.innerHTML = `${renderMoodCurve(notes)}<strong>${mooded.length ? `${mooded.length} 天有状态` : "暂无状态"}</strong>`;
+      delete els.thoughtSummary.dataset.tooltip;
+      delete els.thoughtSummary.dataset.tooltipAlways;
+      els.thoughtSummary.innerHTML = `<span>想法记录</span><div class="thought-line"><span class="thought-text">这期间你有 ${thoughtDays} 天记录了自己的想法</span></div>`;
+      els.openDayStateBtn.hidden = true;
+    }
+
+    function isSingleDateContext() {
+      return state.viewMode === "date" || !state.rangeEnd || state.rangeStart === state.rangeEnd;
     }
 
     function renderTopbar() {
@@ -3128,21 +3336,71 @@
     function renderTaskHeader() {
       const projectView = state.todoListView === "project";
       els.taskTable.classList.toggle("project-table-view", projectView);
-      els.toggleTodoViewBtn.textContent = projectView ? "时间视图" : "项目视图";
-      els.taskHead.innerHTML = projectView
-        ? `<tr><th>项目</th><th>事件</th><th>时间</th><th>日期</th><th>投入时间</th><th>达成感</th><th>备注</th><th>操作</th></tr>`
-        : `<tr><th>时间</th><th>事件</th><th>项目</th><th>日期</th><th>投入时间</th><th>达成感</th><th>备注</th><th>操作</th></tr>`;
+      els.toggleTodoViewBtn.textContent = projectView ? "切回时间" : "切回项目";
+      const columns = projectView
+        ? [["project", "项目"], ["text", "事件"], ["timeBucket", "时间"], ["targetDate", "日期"], ["durationMinutes", "投入时间"], ["completionRating", "达成感"], ["note", "备注"]]
+        : [["timeBucket", "时间"], ["text", "事件"], ["project", "项目"], ["targetDate", "日期"], ["durationMinutes", "投入时间"], ["completionRating", "达成感"], ["note", "备注"]];
+      const headers = columns.map(([key, label]) => {
+        const active = state.sortKey === key;
+        const mark = active && state.sortDir === "desc" ? "↓" : "↑";
+        return `<th><button class="sort-header ${active ? "active" : ""}" type="button" data-sort-key="${key}" data-mark="${mark}" title="按${label}排序">${label}</button></th>`;
+      }).join("");
+      els.taskHead.innerHTML = `<tr>${headers}<th>操作</th></tr>`;
+    }
+
+    function handleHeaderSort(event) {
+      const button = event.target.closest("[data-sort-key]");
+      if (!button) return;
+      const key = button.dataset.sortKey;
+      if (state.sortKey === key) {
+        state.sortDir = state.sortDir === "asc" ? "desc" : "asc";
+      } else {
+        state.sortKey = key;
+        state.sortDir = defaultSortDirection(key);
+      }
+      renderDaily();
+    }
+
+    function defaultSortDirection(key) {
+      return ["durationMinutes"].includes(key) ? "desc" : "asc";
+    }
+
+    function compareTasksByHeader(a, b) {
+      const key = state.sortKey;
+      let diff = 0;
+      if (key === "targetDate") diff = (a.targetDate || "").localeCompare(b.targetDate || "");
+      if (key === "timeBucket") diff = getSectionRank(a) - getSectionRank(b);
+      if (key === "durationMinutes") diff = (Number(a.durationMinutes) || 0) - (Number(b.durationMinutes) || 0);
+      if (key === "project") diff = getProjectForTask(a).name.localeCompare(getProjectForTask(b).name, "zh-CN");
+      if (key === "completionRating") diff = getRatingRank(a.completionRating) - getRatingRank(b.completionRating);
+      if (key === "text") diff = (a.text || "").localeCompare(b.text || "", "zh-CN");
+      if (key === "note") diff = (a.note || "").localeCompare(b.note || "", "zh-CN");
+      if (!diff) diff = getSectionRank(a) - getSectionRank(b) || compareTaskDate(a, b) || new Date(b.createdAt) - new Date(a.createdAt);
+      return state.sortDir === "desc" ? -diff : diff;
+    }
+
+    function getRatingRank(value) {
+      return { baseline: 1, partial: 2, full: 3 }[value || "full"] || 3;
     }
 
     function toggleTodoListView() {
       state.todoListView = state.todoListView === "project" ? "time" : "project";
+      state.sortKey = "";
+      state.sortDir = "asc";
       localStorage.setItem("daily-todo-list-view", state.todoListView);
       render();
     }
 
     function renderTaskRows(tasks) {
       if (state.todoListView === "project") {
-        return tasks.map((task) => taskRow(task)).join("");
+        if (state.sortKey) return tasks.map((task) => taskRow(task)).join("");
+        let currentGroup = "";
+        return tasks.map((task) => {
+          const groupKey = getTaskProjectKey(task);
+          const divider = groupKey !== currentGroup ? projectSectionRow(task, tasks) : "";
+          currentGroup = groupKey;
+          return divider + taskRow(task);
+        }).join("");
       }
       let currentSection = "";
       return tasks.map((task) => {
@@ -3157,6 +3415,12 @@
 
     function timeSectionRow(section) {
       return `<tr class="time-section-row" aria-hidden="true"><td colspan="8"></td></tr>`;
+    }
+
+    function projectSectionRow(task, tasks) {
+      const project = getProjectForTask(task);
+      const minutes = getProjectTaskMinutes(getTaskProjectKey(task), tasks);
+      return `<tr class="project-section-row" aria-hidden="true"><td colspan="8"><span>所属项目 · ${escapeHtml(project.name)} · ${formatCompactDuration(minutes)}</span></td></tr>`;
     }
 
     function getTaskDisplaySection(task) {
@@ -3339,25 +3603,31 @@
     }
 
     function compareProjectViewTasks(a, b, tasks) {
+      const projectDiff = compareTaskProjects(a, b, tasks);
+      if (projectDiff) return projectDiff;
+      const sectionDiff = getSectionRank(a) - getSectionRank(b);
+      if (sectionDiff) return sectionDiff;
       const dateDiff = compareTaskDate(a, b);
       if (dateDiff) return dateDiff;
+      return compareTaskWithinProject(a, b);
+    }
+
+    function compareTaskProjects(a, b, tasks) {
       const aKey = getTaskProjectKey(a);
       const bKey = getTaskProjectKey(b);
-      if (aKey !== bKey) {
-        const aManual = getProjectManualOrder(aKey, tasks);
-        const bManual = getProjectManualOrder(bKey, tasks);
-        if (aManual !== null || bManual !== null) {
-          if (aManual === null) return 1;
-          if (bManual === null) return -1;
-          return aManual - bManual;
-        }
-        const minuteDiff = getProjectTaskMinutesOnDate(bKey, tasks, b.targetDate) - getProjectTaskMinutesOnDate(aKey, tasks, a.targetDate);
-        if (minuteDiff) return minuteDiff;
-        const countDiff = getProjectTaskCountOnDate(bKey, tasks, b.targetDate) - getProjectTaskCountOnDate(aKey, tasks, a.targetDate);
-        if (countDiff) return countDiff;
-        return compareProjects(getProjectForTask(a), getProjectForTask(b));
+      if (aKey === bKey) return 0;
+      const aManual = getProjectManualOrder(aKey, tasks);
+      const bManual = getProjectManualOrder(bKey, tasks);
+      if (aManual !== null || bManual !== null) {
+        if (aManual === null) return 1;
+        if (bManual === null) return -1;
+        return aManual - bManual;
       }
-      return compareTaskWithinProject(a, b);
+      const minuteDiff = getProjectTaskMinutes(bKey, tasks) - getProjectTaskMinutes(aKey, tasks);
+      if (minuteDiff) return minuteDiff;
+      const countDiff = getProjectTaskCount(bKey, tasks) - getProjectTaskCount(aKey, tasks);
+      if (countDiff) return countDiff;
+      return compareProjects(getProjectForTask(a), getProjectForTask(b));
     }
 
     function compareTaskWithinProject(a, b) {
@@ -3402,10 +3672,12 @@
     }
 
     function compareTasks(a, b) {
-      const dateDiff = compareTaskDate(a, b);
-      if (dateDiff) return dateDiff;
       const sectionDiff = getSectionRank(a) - getSectionRank(b);
       if (sectionDiff) return sectionDiff;
+      const projectDiff = compareTaskProjects(a, b, getBaseTasksForCurrentRange());
+      if (projectDiff) return projectDiff;
+      const dateDiff = compareTaskDate(a, b);
+      if (dateDiff) return dateDiff;
       if (a.manualOrder && b.manualOrder) {
         return (a.order || 0) - (b.order || 0) || new Date(b.createdAt) - new Date(a.createdAt);
       }
@@ -3413,6 +3685,14 @@
       const minuteDiff = (Number(b.durationMinutes) || 0) - (Number(a.durationMinutes) || 0);
       if (minuteDiff) return minuteDiff;
       return new Date(b.createdAt) - new Date(a.createdAt);
+    }
+
+    function getBaseTasksForCurrentRange() {
+      return state.tasks.filter((task) => {
+        if (state.viewMode === "all") return true;
+        if (state.viewMode === "calendar" || state.viewMode === "range") return task.targetDate >= state.rangeStart && task.targetDate <= state.rangeEnd;
+        return task.targetDate === state.selectedDate;
+      });
     }
 
     function compareProjects(a, b) {
@@ -3731,12 +4011,85 @@
       return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
     }
 
+    function getMoodScore(value) {
+      const map = {
+        "very-unpleasant": 1,
+        unpleasant: 2,
+        "slightly-unpleasant": 3,
+        neutral: 4,
+        "slightly-pleasant": 5,
+        pleasant: 6,
+        "very-pleasant": 7
+      };
+      return map[value] || 0;
+    }
+
+    function renderMoodCurve(notes, detailed = false) {
+      const scored = notes
+        .map((note, index) => ({ ...note, index, score: getMoodScore(note.mood) }))
+        .filter((note) => note.score);
+      if (!scored.length) return `<div class="mood-curve"><svg viewBox="0 0 320 64" role="img" aria-label="暂无状态曲线"><line class="curve-guide" x1="8" y1="32" x2="312" y2="32"></line></svg></div>`;
+      const width = detailed ? 680 : 320;
+      const height = detailed ? 220 : 64;
+      const padX = detailed ? 42 : 10;
+      const padY = detailed ? 24 : 10;
+      const span = Math.max(1, notes.length - 1);
+      const xFor = (index) => padX + (index / span) * (width - padX * 2);
+      const yFor = (score) => padY + ((7 - score) / 6) * (height - padY * 2);
+      const points = scored.map((note) => `${xFor(note.index).toFixed(1)},${yFor(note.score).toFixed(1)}`);
+      const path = points.length === 1 ? `M ${points[0]}` : `M ${points.join(" L ")}`;
+      const guides = detailed ? [1, 2, 3, 4, 5, 6, 7].map((score) => {
+        const y = yFor(score).toFixed(1);
+        return `<line class="curve-guide" x1="${padX}" y1="${y}" x2="${width - padX}" y2="${y}"></line><text x="8" y="${Number(y) + 4}" fill="#8a684f" font-size="11">${score}</text>`;
+      }).join("") : `<line class="curve-guide" x1="${padX}" y1="${yFor(4)}" x2="${width - padX}" y2="${yFor(4)}"></line>`;
+      const circles = scored.map((note) => `<circle cx="${xFor(note.index).toFixed(1)}" cy="${yFor(note.score).toFixed(1)}" r="${detailed ? 5 : 4}"><title>${friendlyDate(note.date)} ${getMoodOption(note.mood).label}</title></circle>`).join("");
+      const labels = detailed ? notes.map((note, index) => {
+        if (notes.length > 12 && index % Math.ceil(notes.length / 8) !== 0 && index !== notes.length - 1) return "";
+        return `<text x="${xFor(index).toFixed(1)}" y="${height - 4}" text-anchor="middle" fill="#8a684f" font-size="10">${friendlyDate(note.date).replace(/周.*/, "")}</text>`;
+      }).join("") : "";
+      return `<div class="mood-curve ${detailed ? "mood-chart" : ""}"><svg viewBox="0 0 ${width} ${height}" role="img" aria-label="整体状态曲线">${guides}<path d="${path}"></path>${circles}${labels}</svg></div>`;
+    }
+
+    function handleMoodSummaryClick() {
+      if (isSingleDateContext()) {
+        openDayStateDialog();
+      } else {
+        openMoodDetailDialog();
+      }
+    }
+
+    function handleThoughtSummaryClick() {
+      openThoughtDetailDialog();
+    }
+
+    function openMoodDetailDialog() {
+      const notes = getNotesInCurrentRange();
+      els.noteDetailTitle.textContent = "整体状态趋势";
+      els.noteDetailBody.innerHTML = renderMoodCurve(notes, true);
+      els.noteDetailDialog.showModal();
+    }
+
+    function openThoughtDetailDialog() {
+      const notes = isSingleDateContext() ? [{ date: state.selectedDate, ...getDayNote(state.selectedDate) }] : getNotesInCurrentRange();
+      const withThoughts = notes.filter((note) => note.thoughts.length);
+      els.noteDetailTitle.textContent = isSingleDateContext() ? `${friendlyDate(state.selectedDate)} 想法记录` : "想法记录";
+      els.noteDetailBody.innerHTML = withThoughts.length
+        ? withThoughts.map((note) => `
+          <details class="thought-day" open>
+            <summary><span>${friendlyDate(note.date)}</span><span>${note.thoughts.length} 条</span></summary>
+            <div class="thought-list">${note.thoughts.map(thoughtItemHtml).join("")}</div>
+          </details>
+        `).join("")
+        : `<div class="empty">这个范围还没有想法记录。</div>`;
+      els.noteDetailDialog.showModal();
+    }
+
     function openDayStateDialog() {
       const date = state.viewMode === "date" ? state.selectedDate : (state.rangeEnd || state.selectedDate);
       state.editingDayStateDate = date;
       const note = getDayNote(date);
-      els.dayStateTitle.textContent = `${friendlyDate(date)} 整体状态`;
-      els.moodPicker.innerHTML = `<legend>整体状态</legend>` + getMoodOptions().map((mood) => `
+      els.dayStateTitle.textContent = `${friendlyDate(date)} · 今天整体状态`;
+      els.moodPicker.innerHTML = `<legend>今天整体状态</legend>` + getMoodOptions().map((mood) => `
         <label style="--mood-option-bg:${mood.bg};--mood-option-color:${mood.color}">
           <input type="radio" name="dayMood" value="${mood.value}" ${note.mood === mood.value ? "checked" : ""}>
           ${mood.emoji}<br>${mood.label}
@@ -3750,8 +4103,12 @@
 
     function renderThoughtList(note) {
       els.thoughtList.innerHTML = note.thoughts.length
-        ? note.thoughts.map((item) => `<div class="thought-item"><time>${formatThoughtTime(item.createdAt)}</time><div>${escapeHtml(item.text)}</div></div>`).join("")
+        ? note.thoughts.map(thoughtItemHtml).join("")
         : `<div class="empty">还没有想法记录。</div>`;
+    }
+
+    function thoughtItemHtml(item) {
+      return `<div class="thought-item"><time>${formatThoughtTime(item.createdAt)}</time><div title="${escapeHtml(item.text)}">${escapeHtml(item.text)}</div></div>`;
     }
 
     function saveDayState(event) {
