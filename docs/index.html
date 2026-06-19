@@ -685,6 +685,142 @@
       box-shadow: 0 12px 28px rgba(91, 58, 24, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.82);
     }
 
+    .day-state-strip {
+      display: grid;
+      grid-template-columns: minmax(170px, 0.8fr) minmax(0, 1.4fr) auto;
+      gap: 12px;
+      align-items: center;
+      min-height: 58px;
+      padding: 12px 14px;
+      border: 1px solid rgba(227, 200, 155, 0.56);
+      border-radius: 9px;
+      background: linear-gradient(135deg, var(--mood-bg, rgba(255, 250, 241, 0.9)), rgba(255, 253, 247, 0.92));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.78);
+    }
+
+    .mood-summary {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .mood-summary span,
+    .thought-summary span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .mood-summary strong {
+      color: var(--mood-color, var(--text));
+      font-size: 18px;
+      line-height: 1.2;
+    }
+
+    .thought-summary {
+      min-width: 0;
+      color: var(--text);
+      font-weight: 700;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .mood-dots {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .mood-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      background: var(--dot-color, #e7d8bd);
+      box-shadow: inset 0 0 0 1px rgba(83, 48, 22, 0.12);
+    }
+
+    .mood-dot.empty {
+      background: rgba(138, 104, 79, 0.16);
+    }
+
+    #dayStateDialog {
+      width: min(680px, calc(100vw - 28px));
+    }
+
+    .mood-picker {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 6px;
+      border: 0;
+      padding: 0;
+      margin: 0;
+    }
+
+    .mood-picker legend {
+      grid-column: 1 / -1;
+      margin-bottom: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .mood-picker label {
+      display: grid;
+      place-items: center;
+      min-height: 50px;
+      padding: 6px;
+      color: var(--mood-option-color, var(--muted));
+      border: 1px solid rgba(227, 200, 155, 0.66);
+      border-radius: 8px;
+      background: var(--mood-option-bg, #fffdf7);
+      text-align: center;
+      font-size: 12px;
+      font-weight: 760;
+      cursor: pointer;
+    }
+
+    .mood-picker input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .mood-picker label:has(input:checked) {
+      border-color: var(--accent);
+      box-shadow: inset 0 0 0 1px rgba(185, 79, 50, 0.16), 0 8px 18px rgba(91, 58, 24, 0.08);
+      transform: translateY(-1px);
+    }
+
+    #thoughtText {
+      min-height: 96px;
+      resize: vertical;
+    }
+
+    .thought-list {
+      display: grid;
+      gap: 8px;
+      max-height: 180px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .thought-item {
+      display: grid;
+      gap: 4px;
+      padding: 9px 10px;
+      border: 1px solid rgba(227, 200, 155, 0.54);
+      border-radius: 8px;
+      background: rgba(255, 253, 247, 0.72);
+    }
+
+    .thought-item time {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
     .status-panel {
       display: grid;
       grid-template-columns: repeat(5, minmax(0, 1fr));
@@ -959,12 +1095,13 @@
     }
 
     .time-section-row td {
-      padding: 5px 14px 4px;
-      color: rgba(138, 104, 79, 0.46);
+      height: 10px;
+      padding: 0;
+      color: transparent;
       background: transparent;
-      border-bottom: 1px solid rgba(227, 200, 155, 0.24);
-      font-size: 12px;
-      font-weight: 680;
+      border-bottom: 1px solid rgba(227, 200, 155, 0.22);
+      font-size: 0;
+      line-height: 0;
     }
 
     .planned-time {
@@ -1527,7 +1664,9 @@
       }
 
       .topbar,
-      .status-panel {
+      .status-panel,
+      .day-state-strip,
+      .mood-picker {
         grid-template-columns: 1fr;
       }
 
@@ -1610,7 +1749,6 @@
         <input type="date" id="rangeStart" aria-label="开始日期">
         <span>至</span>
         <input type="date" id="rangeEnd" aria-label="结束日期">
-        <button type="button" class="ghost" id="clearRangeBtn">单日</button>
       </div>
 
       <button type="button" class="ghost" id="showAllBtn">全部记录</button>
@@ -1633,6 +1771,12 @@
     </section>
 
     <section class="main-content" id="dailyView">
+      <section class="day-state-strip" id="dayStateStrip" aria-label="整体状态记录">
+        <div class="mood-summary" id="moodSummary"></div>
+        <div class="thought-summary" id="thoughtSummary"></div>
+        <button class="ghost" type="button" id="openDayStateBtn">记录状态</button>
+      </section>
+
       <section class="status-panel" aria-label="复盘统计">
         <button class="metric-button active" type="button" id="totalMetricBtn" data-rating-filter="all">
           <span>记录数</span>
@@ -1773,6 +1917,22 @@
     </div>
   </dialog>
 
+  <dialog id="dayStateDialog">
+    <form class="dialog-body" id="dayStateForm" method="dialog">
+      <h2 id="dayStateTitle">记录今日状态</h2>
+      <fieldset class="mood-picker" id="moodPicker"></fieldset>
+      <div class="field">
+        <label for="thoughtText">想法记录</label>
+        <textarea id="thoughtText" placeholder="写点今天想留下的话，可以用 emoji"></textarea>
+      </div>
+      <div class="thought-list" id="thoughtList"></div>
+      <div class="dialog-actions">
+        <button class="ghost" type="button" id="dayStateCancelBtn">取消</button>
+        <button class="primary" type="submit">保存</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="timePieDialog">
     <div class="dialog-body">
       <h2 id="timePieTitle">时间分布</h2>
@@ -1807,19 +1967,30 @@
     state.draggingProjectKey = null;
     state.mergePanelOpen = false;
     state.lastMergeSnapshot = null;
+    state.editingDayStateDate = "";
 
     const els = {
       todayBtn: document.querySelector("#todayBtn"),
       tomorrowBtn: document.querySelector("#tomorrowBtn"),
       rangeStart: document.querySelector("#rangeStart"),
       rangeEnd: document.querySelector("#rangeEnd"),
-      clearRangeBtn: document.querySelector("#clearRangeBtn"),
       showAllBtn: document.querySelector("#showAllBtn"),
       projectHint: document.querySelector("#projectHint"),
       manageProjectsBtn: document.querySelector("#manageProjectsBtn"),
       projectRail: document.querySelector("#projectRail"),
       addProjectBtn: document.querySelector("#addProjectBtn"),
       dailyView: document.querySelector("#dailyView"),
+      dayStateStrip: document.querySelector("#dayStateStrip"),
+      moodSummary: document.querySelector("#moodSummary"),
+      thoughtSummary: document.querySelector("#thoughtSummary"),
+      openDayStateBtn: document.querySelector("#openDayStateBtn"),
+      dayStateDialog: document.querySelector("#dayStateDialog"),
+      dayStateForm: document.querySelector("#dayStateForm"),
+      dayStateTitle: document.querySelector("#dayStateTitle"),
+      moodPicker: document.querySelector("#moodPicker"),
+      thoughtText: document.querySelector("#thoughtText"),
+      thoughtList: document.querySelector("#thoughtList"),
+      dayStateCancelBtn: document.querySelector("#dayStateCancelBtn"),
       calendarView: document.querySelector("#calendarView"),
       calendarTitle: document.querySelector("#calendarTitle"),
       calendarGrid: document.querySelector("#calendarGrid"),
@@ -1881,8 +2052,10 @@
       els.tomorrowBtn.addEventListener("click", selectWeekToDate);
       els.rangeStart.addEventListener("change", updateDateControls);
       els.rangeEnd.addEventListener("change", updateDateControls);
-      els.clearRangeBtn.addEventListener("click", () => selectSingleDate(els.rangeStart.value || formatDate(new Date())));
       els.showAllBtn.addEventListener("click", toggleAll);
+      els.openDayStateBtn.addEventListener("click", openDayStateDialog);
+      els.dayStateForm.addEventListener("submit", saveDayState);
+      els.dayStateCancelBtn.addEventListener("click", () => els.dayStateDialog.close());
 
       els.projectRail.addEventListener("click", handleProjectRailClick);
       els.projectRail.addEventListener("dblclick", editProjectField);
@@ -2814,6 +2987,31 @@
       renderDaily();
     }
 
+    function renderDayStateStrip() {
+      const notes = getNotesInCurrentRange();
+      const isSingle = state.viewMode === "date" || !state.rangeEnd;
+      const selectedNote = getDayNote(state.selectedDate);
+      if (isSingle) {
+        const mood = getMoodOption(selectedNote.mood);
+        els.dayStateStrip.style.setProperty("--mood-bg", mood.bg);
+        els.dayStateStrip.style.setProperty("--mood-color", mood.color);
+        els.moodSummary.innerHTML = `<span>${friendlyDate(state.selectedDate)}</span><strong>${mood.label}</strong>`;
+        const latest = selectedNote.thoughts[0];
+        els.thoughtSummary.innerHTML = latest
+          ? `<span>最近想法</span>${escapeHtml(formatThoughtTime(latest.createdAt))} · ${escapeHtml(latest.text)}`
+          : `<span>想法记录</span>今天还没有留下想法`;
+        els.openDayStateBtn.textContent = "记录状态";
+        return;
+      }
+      els.dayStateStrip.style.setProperty("--mood-bg", "rgba(255, 250, 241, 0.9)");
+      els.dayStateStrip.style.setProperty("--mood-color", "var(--text)");
+      const mooded = notes.filter((note) => note.mood);
+      const thoughts = notes.reduce((count, note) => count + note.thoughts.length, 0);
+      els.moodSummary.innerHTML = `<span>${getCurrentRangeLabel()}</span><strong>${mooded.length ? `${mooded.length} 天有状态` : "暂无状态"}</strong>`;
+      els.thoughtSummary.innerHTML = renderMoodDots(notes) + `<span>想法记录</span>这个区间有 ${thoughts} 条想法`;
+      els.openDayStateBtn.textContent = "查看记录";
+    }
+
     function renderTopbar() {
       const today = formatDate(new Date());
       const weekStart = getWeekStart(today);
@@ -2821,7 +3019,6 @@
       els.todayBtn.classList.toggle("active", state.viewMode === "date" && state.selectedDate === today);
       els.tomorrowBtn.classList.toggle("active", state.viewMode === "range" && state.rangeStart === weekStart && state.rangeEnd === today);
       els.showAllBtn.textContent = state.viewMode === "calendar" ? "返回日期" : "全部记录";
-      els.clearRangeBtn.hidden = !state.rangeEnd && state.viewMode !== "calendar";
     }
 
     function renderProjects() {
@@ -2896,6 +3093,7 @@
     }
 
     function renderDaily() {
+      renderDayStateStrip();
       const baseTasks = getBaseVisibleTasks();
       const visibleTasks = applyRatingFilter(baseTasks);
       const ratingCounts = countRatings(baseTasks);
@@ -2958,7 +3156,7 @@
     }
 
     function timeSectionRow(section) {
-      return `<tr class="time-section-row"><td colspan="8">${section}</td></tr>`;
+      return `<tr class="time-section-row" aria-hidden="true"><td colspan="8"></td></tr>`;
     }
 
     function getTaskDisplaySection(task) {
@@ -3318,12 +3516,14 @@
         return {
           tasks,
           projects,
+          dailyNotes: normalizeDailyNotes(data.dailyNotes),
           lastReviewDate: data.lastReviewDate || ""
         };
       } catch {
         return {
           tasks: [],
           projects: [],
+          dailyNotes: {},
           lastReviewDate: ""
         };
       }
@@ -3339,6 +3539,7 @@
       return {
         tasks,
         projects,
+        dailyNotes: {},
         lastReviewDate: ""
       };
     }
@@ -3387,6 +3588,20 @@
       if (!/^\d{2}:\d{2}$/.test(String(value || ""))) return false;
       const [hour, minute] = value.split(":").map((part) => Number.parseInt(part, 10));
       return hour >= 0 && hour <= 23 && minute >= 0 && minute <= 55 && minute % 5 === 0;
+    }
+
+    function normalizeDailyNotes(notes) {
+      if (!notes || typeof notes !== "object") return {};
+      return Object.fromEntries(Object.entries(notes).filter(([date]) => isValidDateString(date)).map(([date, note]) => [date, {
+        mood: getMoodOption(note && note.mood) ? note.mood : "",
+        thoughts: Array.isArray(note && note.thoughts)
+          ? note.thoughts.filter((item) => item && String(item.text || "").trim()).map((item) => ({
+              id: item.id || (crypto.randomUUID ? crypto.randomUUID() : `thought-${Date.now()}`),
+              text: String(item.text || "").trim(),
+              createdAt: item.createdAt || new Date().toISOString()
+            }))
+          : []
+      }]));
     }
 
     function normalizeTask(task) {
@@ -3440,6 +3655,22 @@
       return `${hour}:${minute}`;
     }
 
+    function getMoodOptions() {
+      return [
+        { value: "very-unpleasant", label: "非常不愉快", emoji: "🌧", color: "#5c6f83", bg: "rgba(218, 228, 232, 0.82)" },
+        { value: "unpleasant", label: "不愉快", emoji: "🌫", color: "#647b72", bg: "rgba(224, 234, 225, 0.82)" },
+        { value: "slightly-unpleasant", label: "有点不愉快", emoji: "☁️", color: "#6f897f", bg: "rgba(230, 239, 229, 0.82)" },
+        { value: "neutral", label: "不悲不喜", emoji: "◦", color: "#8a684f", bg: "rgba(246, 238, 222, 0.86)" },
+        { value: "slightly-pleasant", label: "有点愉快", emoji: "🌤", color: "#b87535", bg: "rgba(255, 237, 210, 0.86)" },
+        { value: "pleasant", label: "愉快", emoji: "☀️", color: "#c45f32", bg: "rgba(255, 226, 198, 0.88)" },
+        { value: "very-pleasant", label: "非常愉快", emoji: "🌼", color: "#d08b25", bg: "rgba(255, 214, 148, 0.86)" }
+      ];
+    }
+
+    function getMoodOption(value) {
+      return getMoodOptions().find((item) => item.value === value) || { value: "", label: "未记录", emoji: "·", color: "#7a6148", bg: "rgba(255, 250, 241, 0.9)" };
+    }
+
     function getRatingMap() {
       return {
         baseline: { label: "保底完成", emoji: "🌱" },
@@ -3472,6 +3703,74 @@
       if (hours && mins) return `${hours}h${mins}m`;
       if (hours) return `${hours}h`;
       return `${mins}m`;
+    }
+
+    function getDayNote(date) {
+      if (!state.dailyNotes) state.dailyNotes = {};
+      if (!state.dailyNotes[date]) state.dailyNotes[date] = { mood: "", thoughts: [] };
+      return state.dailyNotes[date];
+    }
+
+    function getNotesInCurrentRange() {
+      const start = state.rangeStart || state.selectedDate;
+      const end = state.rangeEnd || state.selectedDate;
+      const dates = enumerateDates(start, end);
+      return dates.map((date) => ({ date, ...getDayNote(date) }));
+    }
+
+    function renderMoodDots(notes) {
+      return `<div class="mood-dots">${notes.map((note) => {
+        const mood = getMoodOption(note.mood);
+        return `<span class="mood-dot ${note.mood ? "" : "empty"}" style="--dot-color:${mood.color}" title="${friendlyDate(note.date)} ${mood.label}"></span>`;
+      }).join("")}</div>`;
+    }
+
+    function formatThoughtTime(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+    }
+
+    function openDayStateDialog() {
+      const date = state.viewMode === "date" ? state.selectedDate : (state.rangeEnd || state.selectedDate);
+      state.editingDayStateDate = date;
+      const note = getDayNote(date);
+      els.dayStateTitle.textContent = `${friendlyDate(date)} 整体状态`;
+      els.moodPicker.innerHTML = `<legend>整体状态</legend>` + getMoodOptions().map((mood) => `
+        <label style="--mood-option-bg:${mood.bg};--mood-option-color:${mood.color}">
+          <input type="radio" name="dayMood" value="${mood.value}" ${note.mood === mood.value ? "checked" : ""}>
+          ${mood.emoji}<br>${mood.label}
+        </label>
+      `).join("");
+      els.thoughtText.value = "";
+      renderThoughtList(note);
+      els.dayStateDialog.showModal();
+      els.thoughtText.focus();
+    }
+
+    function renderThoughtList(note) {
+      els.thoughtList.innerHTML = note.thoughts.length
+        ? note.thoughts.map((item) => `<div class="thought-item"><time>${formatThoughtTime(item.createdAt)}</time><div>${escapeHtml(item.text)}</div></div>`).join("")
+        : `<div class="empty">还没有想法记录。</div>`;
+    }
+
+    function saveDayState(event) {
+      event.preventDefault();
+      const date = state.editingDayStateDate || state.selectedDate;
+      const note = getDayNote(date);
+      const checked = els.dayStateForm.querySelector('input[name="dayMood"]:checked');
+      note.mood = checked ? checked.value : note.mood;
+      const text = els.thoughtText.value.trim();
+      if (text) {
+        note.thoughts.unshift({
+          id: crypto.randomUUID ? crypto.randomUUID() : `thought-${Date.now()}`,
+          text,
+          createdAt: new Date().toISOString()
+        });
+      }
+      saveData();
+      els.dayStateDialog.close();
+      render();
     }
 
     function getCurrentRangeLabel() {
@@ -3522,6 +3821,7 @@
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         tasks: state.tasks,
         projects: state.projects,
+        dailyNotes: state.dailyNotes || {},
         lastReviewDate: state.lastReviewDate || ""
       }));
     }
