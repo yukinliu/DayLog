@@ -337,6 +337,10 @@
       background: linear-gradient(135deg, rgba(220, 239, 230, 0.46), rgba(255, 253, 247, 0.82));
     }
 
+    [hidden] {
+      display: none !important;
+    }
+
     .pro-active-panel {
       display: grid;
       gap: 8px;
@@ -396,16 +400,69 @@
       align-items: baseline;
       justify-content: space-between;
       gap: 8px;
-      padding: 9px 10px;
+      width: 100%;
+      min-height: 46px;
+      padding: 10px 12px;
+      border: 0;
       border-radius: 9px;
       color: #fffaf0;
       background: var(--accent);
+      font: inherit;
       font-weight: 820;
+      text-align: left;
+      cursor: pointer;
     }
 
     .upgrade-price span {
       font-size: 12px;
       opacity: 0.9;
+    }
+
+    .pro-quick-action {
+      min-height: 40px;
+      color: var(--green-text);
+      background: rgba(220, 239, 230, 0.76);
+    }
+
+    .test-reset-pro {
+      justify-self: start;
+      min-height: 30px;
+      padding-inline: 9px;
+      font-size: 12px;
+      opacity: 0.78;
+    }
+
+    .sync-confirm {
+      display: grid;
+      gap: 7px;
+      padding: 10px;
+      border: 1px solid rgba(185, 79, 50, 0.18);
+      border-radius: 9px;
+      background: rgba(255, 246, 235, 0.88);
+    }
+
+    .sync-confirm strong {
+      font-size: 14px;
+    }
+
+    .sync-confirm p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      line-height: 1.45;
+    }
+
+    .sync-confirm-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .sync-confirm-actions button {
+      min-height: 32px;
+      padding-inline: 12px;
+      font-size: 13px;
     }
 
     .sync-message {
@@ -2393,6 +2450,19 @@
       <p class="drawer-note" id="accountHint">未激活时，数据只保存在当前浏览器。请勿把账号和密码分享给他人。</p>
     </section>
 
+    <section class="drawer-section">
+      <h3>升级 Pro</h3>
+      <div class="upgrade-card">
+        <strong>给复盘数据一个备份，不怕换设备、清缓存或误删。</strong>
+        <ul class="pro-benefits">
+          <li>数据备份：把本机复盘数据保存到你的账号</li>
+          <li>防丢失恢复：清空缓存或换浏览器后可恢复</li>
+          <li>一次性激活，后续新增 Pro 能力自动获得</li>
+        </ul>
+        <button class="upgrade-price" type="button" id="copyProContactBtn"><strong>一次性获取 Pro</strong><span>联系我获取账号和密码</span></button>
+      </div>
+    </section>
+
     <section class="drawer-section" id="proActivationSection">
       <h3>Pro 激活</h3>
       <div class="drawer-form" id="proInactivePanel">
@@ -2406,6 +2476,8 @@
           <div class="account-row"><span>密码</span><div class="account-value" id="accountPasswordDisplay">••••••</div><button class="tiny-button" type="button" data-account-copy="password">复制</button></div>
         </div>
         <div class="pro-activated-note">当前数据已绑定到这个账号。为避免数据丢失，请不要外借账号；如果忘记账号，可以根据购买记录人工协助恢复。</div>
+        <button class="ghost pro-quick-action" type="button" id="copyThoughtBundleBtn">一键复制想法</button>
+        <button class="ghost test-reset-pro" type="button" id="resetProTestBtn">测试：切回基础版</button>
       </div>
     </section>
 
@@ -2418,24 +2490,18 @@
         </button>
         <button class="sync-action" type="button" id="syncDownloadBtn">
           <strong>下载最新数据至本机</strong>
-          <span>下载后本机数据将被覆盖，正式版会二次确认</span>
+          <span>下载后本机数据将被覆盖</span>
         </button>
       </div>
-      <div class="sync-message" id="syncMessage" role="status"></div>
-    </section>
-
-    <section class="drawer-section">
-      <h3>升级 Pro</h3>
-      <div class="upgrade-card">
-        <strong>给复盘数据一个备份，不怕换设备、清缓存或误删。</strong>
-        <ul class="pro-benefits">
-          <li>数据备份：把本机复盘数据保存到你的账号</li>
-          <li>防丢失恢复：清空缓存或换浏览器后可恢复</li>
-          <li>一次性激活，后续新增 Pro 能力自动获得</li>
-        </ul>
-        <div class="upgrade-price"><strong>一次性获取 Pro</strong><span>联系我获取账号和密码</span></div>
-        <button class="ghost" type="button" id="copyProContactBtn">复制联系方式</button>
+      <div class="sync-confirm" id="syncConfirm" hidden>
+        <strong id="syncConfirmTitle">确认同步</strong>
+        <p id="syncConfirmText"></p>
+        <div class="sync-confirm-actions">
+          <button class="ghost" type="button" id="syncCancelBtn">取消</button>
+          <button class="primary" type="button" id="syncConfirmBtn">确认</button>
+        </div>
       </div>
+      <div class="sync-message" id="syncMessage" role="status"></div>
     </section>
   </aside>
 
@@ -2573,7 +2639,7 @@
   </dialog>
 
   <script>
-    const STORAGE_KEY = "daily-todo-table-v1";
+    const STORAGE_KEY = location.pathname.endsWith("/test.html") ? "daily-review-test-v1" : "daily-todo-table-v1";
     const UNASSIGNED_PROJECT = "未归类";
 
     const state = loadData();
@@ -2595,6 +2661,7 @@
     state.editingDayStateDate = "";
     state.account = normalizeAccount(state.account);
     state.calendarAnchorDate = "";
+    state.pendingSyncAction = "";
 
     const els = {
       todayBtn: document.querySelector("#todayBtn"),
@@ -2619,6 +2686,13 @@
       syncUploadHint: document.querySelector("#syncUploadHint"),
       syncMessage: document.querySelector("#syncMessage"),
       syncDownloadBtn: document.querySelector("#syncDownloadBtn"),
+      syncConfirm: document.querySelector("#syncConfirm"),
+      syncConfirmTitle: document.querySelector("#syncConfirmTitle"),
+      syncConfirmText: document.querySelector("#syncConfirmText"),
+      syncCancelBtn: document.querySelector("#syncCancelBtn"),
+      syncConfirmBtn: document.querySelector("#syncConfirmBtn"),
+      copyThoughtBundleBtn: document.querySelector("#copyThoughtBundleBtn"),
+      resetProTestBtn: document.querySelector("#resetProTestBtn"),
       copyProContactBtn: document.querySelector("#copyProContactBtn"),
       projectHint: document.querySelector("#projectHint"),
       manageProjectsBtn: document.querySelector("#manageProjectsBtn"),
@@ -2709,6 +2783,10 @@
       els.accountDrawer.addEventListener("click", handleAccountDrawerClick);
       els.syncUploadBtn.addEventListener("click", handleSyncUpload);
       els.syncDownloadBtn.addEventListener("click", handleSyncDownload);
+      els.syncCancelBtn.addEventListener("click", closeSyncConfirm);
+      els.syncConfirmBtn.addEventListener("click", confirmSyncAction);
+      els.copyThoughtBundleBtn.addEventListener("click", copyThoughtBundle);
+      els.resetProTestBtn.addEventListener("click", resetProForTesting);
       els.copyProContactBtn.addEventListener("click", copyProContactText);
       els.openDayStateBtn.addEventListener("click", openDayStateDialog);
       els.moodSummary.addEventListener("click", handleMoodSummaryClick);
@@ -2801,8 +2879,8 @@
         ? `<strong>Pro 已激活</strong><span>${maskCode(account.code)}</span>`
         : `<strong>基础版 · Pro 未激活</strong>`;
       els.accountHint.textContent = account.proActive
-        ? `激活时间：${formatDateTime(account.activatedAt)}。当前本机数据已绑定到这个账号。`
-        : "未激活时，数据只保存在当前浏览器。请勿把账号和密码分享给他人。";
+        ? "当前本机数据已绑定到这个账号。账号仅供本人跨设备同步使用，请不要外借。"
+        : "基础版数据只保存在当前浏览器。激活 Pro 后，可把本机数据绑定到账号。";
       els.proInactivePanel.hidden = account.proActive;
       els.proActivePanel.hidden = !account.proActive;
       els.accountCodeDisplay.textContent = account.code || "-";
@@ -2820,7 +2898,7 @@
       const code = els.proCodeInput.value.trim();
       const password = els.proPasswordInput.value.trim();
       if (code.length < 4 || password.length < 4) {
-        showSyncMessage("请填写账号和密码，至少 4 位。正式版会由服务器校验。", false);
+        showSyncMessage("请填写账号和密码，至少 4 位。", false);
         return;
       }
       state.account = normalizeAccount({
@@ -2832,7 +2910,7 @@
       });
       saveData();
       renderAccountDrawer();
-      showSyncMessage("已在本机激活并绑定当前复盘数据。云端接口接好后，可在其他设备用同一账号和密码下载。", true);
+      showSyncMessage("已激活并绑定当前复盘数据。", true);
     }
 
     function handleAccountDrawerClick(event) {
@@ -2850,19 +2928,46 @@
         showSyncMessage("请先激活 Pro，再使用数据备份。", false);
         return;
       }
-      state.account.lastUploadAt = new Date().toISOString();
-      state.account.lastUploadPlatform = getPlatformLabel();
-      saveData();
-      renderAccountDrawer();
-      showSyncMessage("测试版已记录本机备份时间。正式云端接入后，这里会完成真实上传。", true);
+      openSyncConfirm("upload");
     }
 
     function handleSyncDownload() {
       if (!state.account.proActive) {
-        showSyncMessage("请先激活 Pro，再下载云端数据。", false);
+        showSyncMessage("请先激活 Pro，再下载备份数据。", false);
         return;
       }
-      showSyncMessage("测试版不会覆盖本机数据。正式云端接入后，这里会先确认，再下载并覆盖本机。", false);
+      openSyncConfirm("download");
+    }
+
+    function openSyncConfirm(action) {
+      state.pendingSyncAction = action;
+      els.syncConfirm.hidden = false;
+      els.syncConfirmTitle.textContent = action === "upload" ? "上传数据备份" : "下载最新数据";
+      els.syncConfirmText.textContent = action === "upload"
+        ? "会把当前本机数据作为最新备份。"
+        : "会用最新备份覆盖本机数据。";
+      els.syncMessage.textContent = "";
+    }
+
+    function closeSyncConfirm() {
+      state.pendingSyncAction = "";
+      els.syncConfirm.hidden = true;
+    }
+
+    function confirmSyncAction() {
+      const action = state.pendingSyncAction;
+      closeSyncConfirm();
+      if (action === "upload") {
+        state.account.lastUploadAt = new Date().toISOString();
+        state.account.lastUploadPlatform = getPlatformLabel();
+        saveData();
+        renderAccountDrawer();
+        showSyncMessage("已记录本机备份时间。", true);
+        return;
+      }
+      if (action === "download") {
+        showSyncMessage("暂无可下载备份。", false);
+      }
     }
 
     function showSyncMessage(text, positive = true) {
@@ -2872,11 +2977,30 @@
       state.syncMessageTimer = setTimeout(() => { els.syncMessage.textContent = ""; }, 4500);
     }
 
+    function copyThoughtBundle() {
+      if (!state.account.proActive) {
+        showSyncMessage("请先激活 Pro，再使用一键复制想法。", false);
+        return;
+      }
+      const notes = getNotesInCurrentRange().filter((note) => note.thoughts.length);
+      if (!notes.length) {
+        showSyncMessage("当前范围还没有想法记录。", false);
+        return;
+      }
+      copyText(getThoughtExportText(notes));
+      showSyncMessage("想法记录已复制，可粘贴给 AI 分析。", true);
+    }
+
+    function resetProForTesting() {
+      state.account = normalizeAccount(null);
+      saveData();
+      renderAccountDrawer();
+      showSyncMessage("已切回基础版，方便测试未激活状态。", false);
+    }
+
     function copyProContactText() {
-      const text = "我想获取 Daily Review Pro，请发我账号和密码。";
-      copyText(text);
-      els.copyProContactBtn.textContent = "已复制";
-      setTimeout(() => { els.copyProContactBtn.textContent = "复制联系方式"; }, 1200);
+      copyText("YKLSAC");
+      showSyncMessage("微信号已复制，前往添加。", true);
     }
 
     function maskCode(code) {
@@ -4845,13 +4969,10 @@
     function handleThoughtListAction(event) {
       const noteAction = event.target.closest('[data-note-action]');
       if (noteAction) {
-        const action = noteAction.dataset.noteAction;
-        if (action === "copy-all-thoughts") {
+        if (noteAction.dataset.noteAction === "copy-all-thoughts") {
           copyText(state.pendingThoughtExportText || "");
           noteAction.textContent = "已复制";
           setTimeout(() => { noteAction.textContent = "一键复制想法"; }, 1200);
-        } else if (action === "send-thoughts") {
-          window.alert("传送功能会作为 Pro 能力接入。当前可以先使用一键复制，再粘贴到 AI 或写作软件。");
         }
         return;
       }
