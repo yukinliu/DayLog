@@ -2476,7 +2476,6 @@
           <div class="account-row"><span>密码</span><div class="account-value" id="accountPasswordDisplay">••••••</div><button class="tiny-button" type="button" data-account-copy="password">复制</button></div>
         </div>
         <div class="pro-activated-note">当前数据已绑定到这个账号。为避免数据丢失，请不要外借账号；如果忘记账号，可以根据购买记录人工协助恢复。</div>
-        <button class="ghost pro-quick-action" type="button" id="copyThoughtBundleBtn">一键复制想法</button>
         <button class="ghost test-reset-pro" type="button" id="resetProTestBtn">测试：切回基础版</button>
       </div>
     </section>
@@ -2691,7 +2690,6 @@
       syncConfirmText: document.querySelector("#syncConfirmText"),
       syncCancelBtn: document.querySelector("#syncCancelBtn"),
       syncConfirmBtn: document.querySelector("#syncConfirmBtn"),
-      copyThoughtBundleBtn: document.querySelector("#copyThoughtBundleBtn"),
       resetProTestBtn: document.querySelector("#resetProTestBtn"),
       copyProContactBtn: document.querySelector("#copyProContactBtn"),
       projectHint: document.querySelector("#projectHint"),
@@ -2785,7 +2783,6 @@
       els.syncDownloadBtn.addEventListener("click", handleSyncDownload);
       els.syncCancelBtn.addEventListener("click", closeSyncConfirm);
       els.syncConfirmBtn.addEventListener("click", confirmSyncAction);
-      els.copyThoughtBundleBtn.addEventListener("click", copyThoughtBundle);
       els.resetProTestBtn.addEventListener("click", resetProForTesting);
       els.copyProContactBtn.addEventListener("click", copyProContactText);
       els.openDayStateBtn.addEventListener("click", openDayStateDialog);
@@ -4907,8 +4904,11 @@
       const withThoughts = notes.filter((note) => note.thoughts.length);
       els.noteDetailTitle.textContent = isSingleDateContext() ? `${friendlyDate(state.selectedDate)} 想法记录` : "想法记录";
       const exportText = getThoughtExportText(withThoughts);
+      const thoughtToolbar = state.account.proActive && withThoughts.length
+        ? `<div class="note-detail-toolbar"><button class="ghost" type="button" data-note-action="copy-all-thoughts">一键复制想法</button></div>`
+        : "";
       els.noteDetailBody.innerHTML = withThoughts.length
-        ? withThoughts.map((note) => `
+        ? thoughtToolbar + withThoughts.map((note) => `
           <details class="thought-day" open>
             <summary><span>${friendlyDate(note.date)}</span><span>${note.thoughts.length} 条</span></summary>
             <div class="thought-list">${note.thoughts.map((item) => thoughtItemHtml(item, { date: note.date, editable: false })).join("")}</div>

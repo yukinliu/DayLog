@@ -286,6 +286,200 @@
       color: var(--muted);
     }
 
+    .account-status strong {
+      font-size: 17px;
+    }
+
+    .account-card {
+      display: grid;
+      gap: 8px;
+      padding: 11px;
+      border: 1px solid rgba(63, 133, 103, 0.26);
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(220, 239, 230, 0.82), rgba(255, 253, 247, 0.9));
+    }
+
+    .account-row {
+      display: grid;
+      grid-template-columns: 42px minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .account-row span:first-child {
+      color: var(--muted);
+      font-weight: 760;
+    }
+
+    .account-value {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--green-text);
+      font-weight: 820;
+    }
+
+    .tiny-button {
+      min-height: 28px;
+      padding: 0 8px;
+      border: 0;
+      border-radius: 7px;
+      color: var(--accent);
+      background: rgba(246, 221, 199, 0.72);
+      font-size: 12px;
+      font-weight: 760;
+    }
+
+    .drawer-section.pro-is-active {
+      border-color: rgba(63, 133, 103, 0.28);
+      background: linear-gradient(135deg, rgba(220, 239, 230, 0.46), rgba(255, 253, 247, 0.82));
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    .pro-active-panel {
+      display: grid;
+      gap: 8px;
+    }
+
+    .pro-activated-note {
+      padding: 9px 10px;
+      border-radius: 9px;
+      background: rgba(220, 239, 230, 0.7);
+      color: var(--green-text);
+      font-size: 12px;
+      font-weight: 720;
+      line-height: 1.45;
+    }
+
+    .pro-benefits {
+      display: grid;
+      gap: 7px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .pro-benefits li {
+      display: flex;
+      gap: 7px;
+      align-items: baseline;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 760;
+    }
+
+    .pro-benefits li::before {
+      content: "✓";
+      color: var(--green-text);
+      font-weight: 900;
+    }
+
+    .upgrade-card {
+      display: grid;
+      gap: 9px;
+      padding: 13px;
+      border-radius: 12px;
+      background:
+        radial-gradient(circle at 8% 0%, rgba(40, 127, 116, 0.12), transparent 34%),
+        linear-gradient(135deg, rgba(255, 240, 192, 0.72), rgba(255, 243, 236, 0.9));
+      border: 1px solid rgba(185, 79, 50, 0.18);
+    }
+
+    .upgrade-card strong {
+      font-size: 17px;
+      line-height: 1.25;
+    }
+
+    .upgrade-price {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 8px;
+      width: 100%;
+      min-height: 46px;
+      padding: 10px 12px;
+      border: 0;
+      border-radius: 9px;
+      color: #fffaf0;
+      background: var(--accent);
+      font: inherit;
+      font-weight: 820;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .upgrade-price span {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .pro-quick-action {
+      min-height: 40px;
+      color: var(--green-text);
+      background: rgba(220, 239, 230, 0.76);
+    }
+
+    .test-reset-pro {
+      justify-self: start;
+      min-height: 30px;
+      padding-inline: 9px;
+      font-size: 12px;
+      opacity: 0.78;
+    }
+
+    .sync-confirm {
+      display: grid;
+      gap: 7px;
+      padding: 10px;
+      border: 1px solid rgba(185, 79, 50, 0.18);
+      border-radius: 9px;
+      background: rgba(255, 246, 235, 0.88);
+    }
+
+    .sync-confirm strong {
+      font-size: 14px;
+    }
+
+    .sync-confirm p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      line-height: 1.45;
+    }
+
+    .sync-confirm-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .sync-confirm-actions button {
+      min-height: 32px;
+      padding-inline: 12px;
+      font-size: 13px;
+    }
+
+    .sync-message {
+      min-height: 0;
+      padding: 0;
+      color: var(--green-text);
+      font-size: 12px;
+      font-weight: 720;
+      line-height: 1.45;
+    }
+
+    .sync-message:not(:empty) {
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(220, 239, 230, 0.68);
+    }
+
     .drawer-form {
       display: grid;
       gap: 8px;
@@ -2163,7 +2357,6 @@
       </div>
 
       <div class="top-actions">
-        <button type="button" class="ghost account-button" id="accountCenterBtn" title="个人中心">个人中心</button>
         <button type="button" class="ghost" id="showAllBtn">全部记录</button>
       </div>
     </section>
@@ -2252,18 +2445,38 @@
 
     <section class="drawer-section">
       <h3>账号状态</h3>
-      <div class="account-status inactive" id="accountStatus">基础版 · 未激活</div>
-      <p class="drawer-note" id="accountHint">激活后，当前浏览器里的本地复盘数据会绑定到这个同步凭据。为保证数据安全，仅建议个人使用。</p>
+      <div class="account-status inactive" id="accountStatus"><strong>基础版 · Pro 未激活</strong></div>
+      <p class="drawer-note" id="accountHint">未激活时，数据只保存在当前浏览器。请勿把账号和密码分享给他人。</p>
     </section>
 
     <section class="drawer-section">
+      <h3>升级 Pro</h3>
+      <div class="upgrade-card">
+        <strong>给复盘数据一个备份，不怕换设备、清缓存或误删。</strong>
+        <ul class="pro-benefits">
+          <li>数据备份：把本机复盘数据保存到你的账号</li>
+          <li>防丢失恢复：清空缓存或换浏览器后可恢复</li>
+          <li>一次性激活，后续新增 Pro 能力自动获得</li>
+        </ul>
+        <button class="upgrade-price" type="button" id="copyProContactBtn"><strong>一次性获取 Pro</strong><span>联系我获取账号和密码</span></button>
+      </div>
+    </section>
+
+    <section class="drawer-section" id="proActivationSection">
       <h3>Pro 激活</h3>
-      <div class="drawer-form">
-        <input id="proCodeInput" type="text" autocomplete="off" placeholder="输入同步码 / 卡密">
-        <input id="proPasswordInput" type="password" autocomplete="off" placeholder="输入同步密码">
+      <div class="drawer-form" id="proInactivePanel">
+        <input id="proCodeInput" type="text" autocomplete="off" placeholder="账号 / 卡密">
+        <input id="proPasswordInput" type="password" autocomplete="off" placeholder="密码">
         <button class="primary" type="button" id="activateProBtn">激活并绑定本机数据</button>
       </div>
-      <p class="drawer-note">当前是前端测试版：会先保存激活凭据与本机数据绑定状态；真正云端校验和找回需要接入服务器。</p>
+      <div class="pro-active-panel" id="proActivePanel" hidden>
+        <div class="account-card">
+          <div class="account-row"><span>账号</span><div class="account-value" id="accountCodeDisplay">-</div><button class="tiny-button" type="button" data-account-copy="code">复制</button></div>
+          <div class="account-row"><span>密码</span><div class="account-value" id="accountPasswordDisplay">••••••</div><button class="tiny-button" type="button" data-account-copy="password">复制</button></div>
+        </div>
+        <div class="pro-activated-note">当前数据已绑定到这个账号。为避免数据丢失，请不要外借账号；如果忘记账号，可以根据购买记录人工协助恢复。</div>
+        <button class="ghost test-reset-pro" type="button" id="resetProTestBtn">测试：切回基础版</button>
+      </div>
     </section>
 
     <section class="drawer-section">
@@ -2278,12 +2491,15 @@
           <span>下载后本机数据将被覆盖</span>
         </button>
       </div>
-      <p class="drawer-note">云端备份需要后端接口。接口接好后，这两个按钮就会负责跨设备手动同步。</p>
-    </section>
-
-    <section class="drawer-section">
-      <h3>未来 Pro 功能</h3>
-      <p class="drawer-note">想法记录一键复制 / 传送、云端备份、跨设备恢复、更多复盘导出能力会集中放在这里。</p>
+      <div class="sync-confirm" id="syncConfirm" hidden>
+        <strong id="syncConfirmTitle">确认同步</strong>
+        <p id="syncConfirmText"></p>
+        <div class="sync-confirm-actions">
+          <button class="ghost" type="button" id="syncCancelBtn">取消</button>
+          <button class="primary" type="button" id="syncConfirmBtn">确认</button>
+        </div>
+      </div>
+      <div class="sync-message" id="syncMessage" role="status"></div>
     </section>
   </aside>
 
@@ -2421,7 +2637,7 @@
   </dialog>
 
   <script>
-    const STORAGE_KEY = "daily-todo-table-v1";
+    const STORAGE_KEY = location.pathname.endsWith("/test.html") ? "daily-review-test-v1" : "daily-todo-table-v1";
     const UNASSIGNED_PROJECT = "未归类";
 
     const state = loadData();
@@ -2443,6 +2659,7 @@
     state.editingDayStateDate = "";
     state.account = normalizeAccount(state.account);
     state.calendarAnchorDate = "";
+    state.pendingSyncAction = "";
 
     const els = {
       todayBtn: document.querySelector("#todayBtn"),
@@ -2456,12 +2673,24 @@
       accountCloseBtn: document.querySelector("#accountCloseBtn"),
       accountStatus: document.querySelector("#accountStatus"),
       accountHint: document.querySelector("#accountHint"),
+      proInactivePanel: document.querySelector("#proInactivePanel"),
+      proActivePanel: document.querySelector("#proActivePanel"),
+      accountCodeDisplay: document.querySelector("#accountCodeDisplay"),
+      accountPasswordDisplay: document.querySelector("#accountPasswordDisplay"),
       proCodeInput: document.querySelector("#proCodeInput"),
       proPasswordInput: document.querySelector("#proPasswordInput"),
       activateProBtn: document.querySelector("#activateProBtn"),
       syncUploadBtn: document.querySelector("#syncUploadBtn"),
       syncUploadHint: document.querySelector("#syncUploadHint"),
+      syncMessage: document.querySelector("#syncMessage"),
       syncDownloadBtn: document.querySelector("#syncDownloadBtn"),
+      syncConfirm: document.querySelector("#syncConfirm"),
+      syncConfirmTitle: document.querySelector("#syncConfirmTitle"),
+      syncConfirmText: document.querySelector("#syncConfirmText"),
+      syncCancelBtn: document.querySelector("#syncCancelBtn"),
+      syncConfirmBtn: document.querySelector("#syncConfirmBtn"),
+      resetProTestBtn: document.querySelector("#resetProTestBtn"),
+      copyProContactBtn: document.querySelector("#copyProContactBtn"),
       projectHint: document.querySelector("#projectHint"),
       manageProjectsBtn: document.querySelector("#manageProjectsBtn"),
       projectRail: document.querySelector("#projectRail"),
@@ -2544,12 +2773,17 @@
       els.rangeStart.addEventListener("change", updateDateControls);
       els.rangeEnd.addEventListener("change", updateDateControls);
       els.showAllBtn.addEventListener("click", toggleAll);
-      els.accountCenterBtn.addEventListener("click", openAccountDrawer);
+      if (els.accountCenterBtn) els.accountCenterBtn.addEventListener("click", openAccountDrawer);
       els.accountCloseBtn.addEventListener("click", closeAccountDrawer);
       els.accountBackdrop.addEventListener("click", closeAccountDrawer);
       els.activateProBtn.addEventListener("click", activateProAccount);
+      els.accountDrawer.addEventListener("click", handleAccountDrawerClick);
       els.syncUploadBtn.addEventListener("click", handleSyncUpload);
       els.syncDownloadBtn.addEventListener("click", handleSyncDownload);
+      els.syncCancelBtn.addEventListener("click", closeSyncConfirm);
+      els.syncConfirmBtn.addEventListener("click", confirmSyncAction);
+      els.resetProTestBtn.addEventListener("click", resetProForTesting);
+      els.copyProContactBtn.addEventListener("click", copyProContactText);
       els.openDayStateBtn.addEventListener("click", openDayStateDialog);
       els.moodSummary.addEventListener("click", handleMoodSummaryClick);
       els.thoughtSummary.addEventListener("click", handleThoughtSummaryClick);
@@ -2634,15 +2868,23 @@
 
     function renderAccountDrawer() {
       const account = state.account || normalizeAccount(null);
+      const activationSection = document.querySelector("#proActivationSection");
+      if (activationSection) activationSection.classList.toggle("pro-is-active", account.proActive);
       els.accountStatus.classList.toggle("inactive", !account.proActive);
       els.accountStatus.innerHTML = account.proActive
-        ? `<span>Pro 已激活</span><span>${maskCode(account.code)}</span>`
-        : `<span>基础版 · 未激活</span>`;
+        ? `<strong>Pro 已激活</strong><span>${maskCode(account.code)}</span>`
+        : `<strong>基础版 · Pro 未激活</strong>`;
       els.accountHint.textContent = account.proActive
-        ? `激活时间：${formatDateTime(account.activatedAt)}。当前本机数据已绑定到这个同步凭据。`
-        : "激活后，当前浏览器里的本地复盘数据会绑定到这个同步凭据。为保证数据安全，仅建议个人使用。";
-      els.proCodeInput.value = account.proActive ? account.code : els.proCodeInput.value;
-      els.proPasswordInput.value = account.proActive ? account.password : els.proPasswordInput.value;
+        ? "当前本机数据已绑定到这个账号。账号仅供本人跨设备同步使用，请不要外借。"
+        : "基础版数据只保存在当前浏览器。激活 Pro 后，可把本机数据绑定到账号。";
+      els.proInactivePanel.hidden = account.proActive;
+      els.proActivePanel.hidden = !account.proActive;
+      els.accountCodeDisplay.textContent = account.code || "-";
+      els.accountPasswordDisplay.textContent = account.password ? "•".repeat(Math.min(10, Math.max(6, account.password.length))) : "-";
+      if (!account.proActive) {
+        els.proCodeInput.value = els.proCodeInput.value;
+        els.proPasswordInput.value = els.proPasswordInput.value;
+      }
       els.syncUploadHint.textContent = account.lastUploadAt
         ? `上次备份：${timeAgo(account.lastUploadAt)} · ${account.lastUploadPlatform || getPlatformLabel()}`
         : "上次备份：暂无";
@@ -2652,7 +2894,7 @@
       const code = els.proCodeInput.value.trim();
       const password = els.proPasswordInput.value.trim();
       if (code.length < 4 || password.length < 4) {
-        window.alert("请填写同步码/卡密和同步密码，至少 4 位。正式版会由服务器校验。 ");
+        showSyncMessage("请填写账号和密码，至少 4 位。", false);
         return;
       }
       state.account = normalizeAccount({
@@ -2664,27 +2906,97 @@
       });
       saveData();
       renderAccountDrawer();
-      window.alert("已在本机激活并绑定当前复盘数据。云端同步接口接好后，就可以用同一同步码和密码在其他设备下载。 ");
+      showSyncMessage("已激活并绑定当前复盘数据。", true);
+    }
+
+    function handleAccountDrawerClick(event) {
+      const copyButton = event.target.closest("[data-account-copy]");
+      if (!copyButton) return;
+      const field = copyButton.dataset.accountCopy;
+      const value = field === "password" ? state.account.password : state.account.code;
+      copyText(value || "");
+      copyButton.textContent = "已复制";
+      setTimeout(() => { copyButton.textContent = "复制"; }, 1000);
     }
 
     function handleSyncUpload() {
       if (!state.account.proActive) {
-        window.alert("请先在个人中心输入同步码/卡密和同步密码。 ");
+        showSyncMessage("请先激活 Pro，再使用数据备份。", false);
         return;
       }
-      state.account.lastUploadAt = new Date().toISOString();
-      state.account.lastUploadPlatform = getPlatformLabel();
-      saveData();
-      renderAccountDrawer();
-      window.alert("当前是前端测试版：已记录本机备份时间。真正上传需要接入云端同步接口。 ");
+      openSyncConfirm("upload");
     }
 
     function handleSyncDownload() {
       if (!state.account.proActive) {
-        window.alert("请先在个人中心输入同步码/卡密和同步密码。 ");
+        showSyncMessage("请先激活 Pro，再下载备份数据。", false);
         return;
       }
-      window.alert("下载最新数据会覆盖本机数据。当前是前端测试版，等待接入云端同步接口后启用。 ");
+      openSyncConfirm("download");
+    }
+
+    function openSyncConfirm(action) {
+      state.pendingSyncAction = action;
+      els.syncConfirm.hidden = false;
+      els.syncConfirmTitle.textContent = action === "upload" ? "上传数据备份" : "下载最新数据";
+      els.syncConfirmText.textContent = action === "upload"
+        ? "会把当前本机数据作为最新备份。"
+        : "会用最新备份覆盖本机数据。";
+      els.syncMessage.textContent = "";
+    }
+
+    function closeSyncConfirm() {
+      state.pendingSyncAction = "";
+      els.syncConfirm.hidden = true;
+    }
+
+    function confirmSyncAction() {
+      const action = state.pendingSyncAction;
+      closeSyncConfirm();
+      if (action === "upload") {
+        state.account.lastUploadAt = new Date().toISOString();
+        state.account.lastUploadPlatform = getPlatformLabel();
+        saveData();
+        renderAccountDrawer();
+        showSyncMessage("已记录本机备份时间。", true);
+        return;
+      }
+      if (action === "download") {
+        showSyncMessage("暂无可下载备份。", false);
+      }
+    }
+
+    function showSyncMessage(text, positive = true) {
+      els.syncMessage.textContent = text;
+      els.syncMessage.style.color = positive ? "var(--green-text)" : "var(--muted)";
+      clearTimeout(state.syncMessageTimer);
+      state.syncMessageTimer = setTimeout(() => { els.syncMessage.textContent = ""; }, 4500);
+    }
+
+    function copyThoughtBundle() {
+      if (!state.account.proActive) {
+        showSyncMessage("请先激活 Pro，再使用一键复制想法。", false);
+        return;
+      }
+      const notes = getNotesInCurrentRange().filter((note) => note.thoughts.length);
+      if (!notes.length) {
+        showSyncMessage("当前范围还没有想法记录。", false);
+        return;
+      }
+      copyText(getThoughtExportText(notes));
+      showSyncMessage("想法记录已复制，可粘贴给 AI 分析。", true);
+    }
+
+    function resetProForTesting() {
+      state.account = normalizeAccount(null);
+      saveData();
+      renderAccountDrawer();
+      showSyncMessage("已切回基础版，方便测试未激活状态。", false);
+    }
+
+    function copyProContactText() {
+      copyText("YKLSAC");
+      showSyncMessage("微信号已复制，前往添加。", true);
     }
 
     function maskCode(code) {
@@ -4591,8 +4903,11 @@
       const withThoughts = notes.filter((note) => note.thoughts.length);
       els.noteDetailTitle.textContent = isSingleDateContext() ? `${friendlyDate(state.selectedDate)} 想法记录` : "想法记录";
       const exportText = getThoughtExportText(withThoughts);
+      const thoughtToolbar = false && state.account.proActive && withThoughts.length
+        ? `<div class="note-detail-toolbar"><button class="ghost" type="button" data-note-action="copy-all-thoughts">一键复制想法</button></div>`
+        : "";
       els.noteDetailBody.innerHTML = withThoughts.length
-        ? `<div class="note-detail-toolbar"><button class="ghost" type="button" data-note-action="copy-all-thoughts">一键复制想法</button><button class="ghost" type="button" data-note-action="send-thoughts">传送（Pro 预留）</button></div>` + withThoughts.map((note) => `
+        ? thoughtToolbar + withThoughts.map((note) => `
           <details class="thought-day" open>
             <summary><span>${friendlyDate(note.date)}</span><span>${note.thoughts.length} 条</span></summary>
             <div class="thought-list">${note.thoughts.map((item) => thoughtItemHtml(item, { date: note.date, editable: false })).join("")}</div>
@@ -4653,13 +4968,10 @@
     function handleThoughtListAction(event) {
       const noteAction = event.target.closest('[data-note-action]');
       if (noteAction) {
-        const action = noteAction.dataset.noteAction;
-        if (action === "copy-all-thoughts") {
+        if (noteAction.dataset.noteAction === "copy-all-thoughts") {
           copyText(state.pendingThoughtExportText || "");
           noteAction.textContent = "已复制";
           setTimeout(() => { noteAction.textContent = "一键复制想法"; }, 1200);
-        } else if (action === "send-thoughts") {
-          window.alert("传送功能会作为 Pro 能力接入。当前可以先使用一键复制，再粘贴到 AI 或写作软件。");
         }
         return;
       }
