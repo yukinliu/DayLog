@@ -1531,6 +1531,15 @@
       padding: 12px;
     }
 
+    .day-card[data-date] {
+      cursor: pointer;
+    }
+
+    .day-card[data-date]:focus-visible {
+      outline: 2px solid rgba(185, 79, 50, 0.28);
+      outline-offset: 2px;
+    }
+
     .calendar-grid {
       display: grid;
       gap: 14px;
@@ -2316,6 +2325,9 @@
       els.thoughtList.addEventListener("contextmenu", handleThoughtInlineEdit);
       els.dayStateCancelBtn.addEventListener("click", () => els.dayStateDialog.close());
       els.noteDetailBody.addEventListener("click", handleThoughtListAction);
+      els.noteDetailBody.addEventListener("mouseover", scheduleHoverTooltip);
+      els.noteDetailBody.addEventListener("mousemove", moveHoverTooltip);
+      els.noteDetailBody.addEventListener("mouseout", hideHoverTooltip);
       els.noteDetailCloseBtn.addEventListener("click", () => els.noteDetailDialog.close());
 
       els.projectRail.addEventListener("click", handleProjectRailClick);
@@ -2354,6 +2366,8 @@
       els.metricButtons.forEach((button) => button.addEventListener("click", () => setRatingFilter(button.dataset.ratingFilter || "all")));
       els.focusTimeBtn.addEventListener("click", openTimePie);
       els.timePieCloseBtn.addEventListener("click", () => els.timePieDialog.close());
+      els.calendarGrid.addEventListener("click", handleCalendarDayOpen);
+      els.calendarGrid.addEventListener("keydown", handleCalendarDayKeydown);
 
       render();
     }
@@ -2857,7 +2871,7 @@
 
     function scheduleHoverTooltip(event) {
       const target = event.target.closest("[data-tooltip]");
-      const inTooltipArea = els.taskBody.contains(target) || els.thoughtSummary.contains(target);
+      const inTooltipArea = els.taskBody.contains(target) || els.thoughtSummary.contains(target) || els.noteDetailBody.contains(target);
       if (!target || !inTooltipArea || (!target.dataset.tooltipAlways && !isTextOverflowing(target))) return;
       tooltipTarget = target;
       clearTimeout(tooltipTimer);
@@ -3580,6 +3594,20 @@
       els.calendarGrid.innerHTML = renderMonthCalendars(start, end);
     }
 
+    function handleCalendarDayOpen(event) {
+      const card = event.target.closest(".day-card[data-date]");
+      if (!card) return;
+      selectSingleDate(card.dataset.date);
+    }
+
+    function handleCalendarDayKeydown(event) {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      const card = event.target.closest(".day-card[data-date]");
+      if (!card) return;
+      event.preventDefault();
+      selectSingleDate(card.dataset.date);
+    }
+
     function dayCard(date) {
       const today = formatDate(new Date());
       const tasks = state.tasks.filter((task) => task.targetDate === date);
@@ -3589,7 +3617,7 @@
         : `<div class="empty">没有记录</div>`;
 
       return `
-        <article class="day-card ${date === today ? "today" : ""}">
+        <article class="day-card ${date === today ? "today" : ""}" data-date="${date}" tabindex="0" role="button" aria-label="查看 ${friendlyDate(date)} 的复盘记录">
           <div class="day-head">
             <span>${friendlyDate(date)}</span>
             <span class="day-count">${tasks.length} 条</span>
@@ -4211,7 +4239,7 @@
       const actions = editable
         ? `<button class="thought-action" type="button" data-thought-action="copy" title="复制">⧉</button><button class="thought-action" type="button" data-thought-action="delete" title="删除">×</button>`
         : `<button class="thought-action" type="button" data-thought-action="copy" title="复制">⧉</button>`;
-      return `<div class="thought-item" data-date="${escapeHtml(date)}" data-thought-id="${escapeHtml(item.id)}"><time>${formatThoughtTime(item.createdAt)}</time><div class="thought-text-field" data-thought-action="edit" title="${escapeHtml(item.text)}">${escapeHtml(item.text)}</div><div class="thought-actions">${actions}</div></div>`;
+      return `<div class="thought-item" data-date="${escapeHtml(date)}" data-thought-id="${escapeHtml(item.id)}"><time>${formatThoughtTime(item.createdAt)}</time><div class="thought-text-field" data-thought-action="edit" data-tooltip="${escapeHtml(item.text)}" aria-label="${escapeHtml(item.text)}">${escapeHtml(item.text)}</div><div class="thought-actions">${actions}</div></div>`;
     }
 
     function handleThoughtInlineEdit(event) {
