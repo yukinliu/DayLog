@@ -795,6 +795,10 @@
       stroke-linejoin: round;
     }
 
+    .mood-curve path.curve-segment {
+      stroke-width: 3.5;
+    }
+
     .mood-curve circle {
       fill: var(--point-color, #4f8f76);
       stroke: #fffaf0;
@@ -952,11 +956,24 @@
     .thought-edit-input {
       width: 100%;
       min-width: 0;
-      height: 30px;
-      padding: 0 8px;
+      min-height: 116px;
+      max-height: 260px;
+      padding: 9px 10px;
       border: 1px solid rgba(185, 79, 50, 0.28);
-      border-radius: 7px;
+      border-radius: 8px;
       background: #fffdf7;
+      line-height: 1.55;
+      resize: vertical;
+    }
+
+    .thought-item.editing {
+      grid-template-columns: 9px 44px minmax(0, 1fr);
+      align-items: start;
+      padding-block: 8px;
+    }
+
+    .thought-item.editing .thought-actions {
+      display: none;
     }
 
     #noteDetailDialog {
@@ -4118,7 +4135,13 @@
         const prev = scored[index];
         const avg = (prev.score + note.score) / 2;
         const color = avg > 4 ? "#c68138" : avg < 4 ? "#5f857d" : "#8a684f";
-        return `<line class="curve-segment" style="--segment-color:${color}" x1="${xFor(prev.index).toFixed(1)}" y1="${yFor(prev.score).toFixed(1)}" x2="${xFor(note.index).toFixed(1)}" y2="${yFor(note.score).toFixed(1)}"></line>`;
+        const x1 = xFor(prev.index);
+        const y1 = yFor(prev.score);
+        const x2 = xFor(note.index);
+        const y2 = yFor(note.score);
+        const dx = Math.max(18, Math.abs(x2 - x1) * 0.42);
+        const d = `M ${x1.toFixed(1)} ${y1.toFixed(1)} C ${(x1 + dx).toFixed(1)} ${y1.toFixed(1)}, ${(x2 - dx).toFixed(1)} ${y2.toFixed(1)}, ${x2.toFixed(1)} ${y2.toFixed(1)}`;
+        return `<path class="curve-segment" style="--segment-color:${color}" d="${d}"></path>`;
       }).join("");
       const singlePoint = scored.length === 1 ? `<line class="curve-segment" style="--segment-color:${scored[0].mood.color}" x1="${Math.max(padLeft, xFor(scored[0].index) - 14)}" y1="${yFor(scored[0].score).toFixed(1)}" x2="${Math.min(width - padRight, xFor(scored[0].index) + 14)}" y2="${yFor(scored[0].score).toFixed(1)}"></line>` : "";
       const circles = scored.map((note) => `<circle style="--point-color:${note.mood.color}" cx="${xFor(note.index).toFixed(1)}" cy="${yFor(note.score).toFixed(1)}" r="${detailed ? 5 : 4}"><title>${friendlyDate(note.date)} ${note.mood.label}</title></circle>`).join("");
@@ -4186,8 +4209,8 @@
       const editable = options.editable !== false;
       const date = options.date || state.editingDayStateDate || state.selectedDate;
       const actions = editable
-        ? `<button class="thought-action" type="button" data-thought-action="edit" title="修改">✎</button><button class="thought-action" type="button" data-thought-action="copy" title="复制">⧉</button><button class="thought-action" type="button" data-thought-action="delete" title="删除">×</button>`
-        : `<button class="thought-action" type="button" data-thought-action="copy" title="复制">⧉</button><button class="thought-action" type="button" data-thought-action="delete" title="删除">×</button>`;
+        ? `<button class="thought-action" type="button" data-thought-action="copy" title="复制">⧉</button><button class="thought-action" type="button" data-thought-action="delete" title="删除">×</button>`
+        : `<button class="thought-action" type="button" data-thought-action="copy" title="复制">⧉</button>`;
       return `<div class="thought-item" data-date="${escapeHtml(date)}" data-thought-id="${escapeHtml(item.id)}"><time>${formatThoughtTime(item.createdAt)}</time><div class="thought-text-field" data-thought-action="edit" title="${escapeHtml(item.text)}">${escapeHtml(item.text)}</div><div class="thought-actions">${actions}</div></div>`;
     }
 
@@ -4236,12 +4259,13 @@
       const thought = note.thoughts.find((item) => item.id === row.dataset.thoughtId);
       const field = row.querySelector('.thought-text-field');
       if (!thought || !field || field.querySelector('input')) return;
-      const input = document.createElement('input');
+      const input = document.createElement('textarea');
       input.className = 'thought-edit-input';
       input.value = thought.text;
+      row.classList.add('editing');
       field.replaceChildren(input);
       input.focus();
-      input.select();
+      input.setSelectionRange(input.value.length, input.value.length);
       let done = false;
       const finish = (save) => {
         if (done) return;
@@ -4250,11 +4274,12 @@
           thought.text = input.value.trim() || thought.text;
           saveData();
         }
+        row.classList.remove('editing');
         renderThoughtList(note);
         render();
       };
       input.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') finish(true);
+        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') finish(true);
         if (event.key === 'Escape') finish(false);
       });
       input.addEventListener('blur', () => finish(true));
