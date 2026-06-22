@@ -55,6 +55,10 @@
       cursor: pointer;
     }
 
+    .emoji-mark {
+      font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+    }
+
     .app {
       width: min(1280px, calc(100vw - 28px));
       margin: 0 auto;
@@ -80,6 +84,26 @@
       align-items: center;
       padding: 12px;
       margin-bottom: 12px;
+    }
+
+    .calendar-range-title {
+      display: none;
+      color: var(--text);
+      font-size: 18px;
+      font-weight: 820;
+    }
+
+    .topbar.calendar-mode {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .topbar.calendar-mode .calendar-range-title {
+      display: block;
+    }
+
+    .topbar.calendar-mode .segmented,
+    .topbar.calendar-mode .range-control {
+      display: none;
     }
 
     .segmented {
@@ -136,6 +160,21 @@
     .range-control span {
       color: var(--muted);
       font-size: 13px;
+    }
+
+    .range-control .range-helper {
+      min-height: 38px;
+      padding: 0 12px;
+      color: var(--teal);
+      border: 1px solid rgba(40, 127, 116, 0.24);
+      background: rgba(220, 239, 230, 0.7);
+      box-shadow: none;
+    }
+
+    .range-control .range-helper.active {
+      border-color: rgba(40, 127, 116, 0.42);
+      background: rgba(220, 239, 230, 0.98);
+      box-shadow: inset 0 0 0 2px rgba(40, 127, 116, 0.1);
     }
 
     input,
@@ -1056,12 +1095,12 @@
 
     .day-state-strip {
       display: grid;
-      grid-template-columns: minmax(190px, 0.88fr) minmax(0, 1.75fr) auto;
-      gap: 18px;
-      align-items: center;
-      min-height: 72px;
+      grid-template-columns: minmax(140px, 0.45fr) minmax(210px, 0.85fr) minmax(0, 1.45fr) auto;
+      gap: 12px;
+      align-items: stretch;
+      min-height: 74px;
       margin: 0 0 12px;
-      padding: 14px 16px;
+      padding: 10px;
       border: 1px solid rgba(227, 200, 155, 0.58);
       border-radius: 10px;
       background: linear-gradient(135deg, var(--mood-bg, rgba(255, 250, 241, 0.9)), rgba(255, 253, 247, 0.95));
@@ -1069,7 +1108,7 @@
     }
 
     .day-state-strip.range-mode {
-      grid-template-columns: minmax(380px, 1.35fr) minmax(0, 1fr);
+      grid-template-columns: minmax(140px, 0.45fr) minmax(320px, 1.25fr) minmax(0, 1fr);
       cursor: default;
     }
 
@@ -1077,9 +1116,34 @@
       display: none;
     }
 
+    .state-strip-title,
     .mood-summary,
     .thought-summary {
       min-width: 0;
+      padding: 9px 12px;
+      border: 1px solid rgba(227, 200, 155, 0.42);
+      border-radius: 8px;
+      background: rgba(255, 253, 247, 0.48);
+    }
+
+    .state-strip-title {
+      display: grid;
+      align-content: center;
+      gap: 3px;
+    }
+
+    .state-strip-title span,
+    .mood-summary span,
+    .thought-summary > span {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .state-strip-title strong {
+      color: var(--text);
+      font-size: 18px;
+      line-height: 1.1;
     }
 
     .day-state-strip.range-mode .mood-summary,
@@ -1093,33 +1157,41 @@
 
     .mood-summary {
       display: grid;
+      align-content: center;
       gap: 4px;
     }
 
-    .mood-summary span,
-    .thought-summary > span {
-      color: var(--muted);
-      font-size: 12px;
-      font-weight: 720;
-    }
-
     .mood-summary strong {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-width: 0;
       color: var(--mood-color, var(--text));
       font-size: 19px;
       line-height: 1.16;
     }
 
+    .mood-summary .mood-emoji {
+      font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+      font-size: 21px;
+      line-height: 1;
+    }
+
     .thought-summary {
       display: grid;
+      align-content: center;
       gap: 4px;
-      min-height: 46px;
-      padding: 8px 14px;
+      min-height: 52px;
       color: var(--text);
       font-weight: 760;
       overflow: hidden;
-      border-left: 1px solid rgba(227, 200, 155, 0.52);
-      background: rgba(255, 253, 247, 0.42);
-      border-radius: 8px;
+    }
+
+    #openDayStateBtn {
+      align-self: center;
+      color: var(--teal);
+      background: var(--teal-soft);
+      border: 1px solid rgba(40, 127, 116, 0.24);
     }
 
     .thought-line {
@@ -1426,7 +1498,7 @@
 
     .status-panel {
       display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      grid-template-columns: repeat(6, minmax(0, 1fr));
       gap: 8px;
       padding: 0;
       overflow: hidden;
@@ -2300,6 +2372,7 @@
       }
 
       .topbar,
+      .topbar.calendar-mode,
       .status-panel,
       .day-state-strip,
       .day-state-strip.range-mode,
@@ -2376,7 +2449,8 @@
 </head>
 <body>
   <main class="app">
-    <section class="topbar" aria-label="日期控制">
+    <section class="topbar" id="topbar" aria-label="日期控制">
+      <div class="calendar-range-title" id="calendarRangeTitle"></div>
       <div class="segmented" role="tablist" aria-label="快速切换日期">
         <button type="button" id="todayBtn">今天</button>
         <button type="button" id="tomorrowBtn">本周</button>
@@ -2386,19 +2460,20 @@
         <input type="date" id="rangeStart" aria-label="开始日期">
         <span>至</span>
         <input type="date" id="rangeEnd" aria-label="结束日期">
+        <button type="button" class="ghost range-helper" id="allTimeBtn">全部</button>
       </div>
 
       <div class="top-actions">
-        <button type="button" class="ghost" id="allTimeBtn">全部</button>
         <button type="button" class="ghost" id="showAllBtn">日历</button>
         <button type="button" class="ghost account-button" id="accountCenterBtn" title="个人中心">个人中心</button>
       </div>
     </section>
 
     <section class="day-state-strip" id="dayStateStrip" aria-label="整体状态记录">
+      <div class="state-strip-title" id="stateStripTitle"></div>
       <div class="mood-summary" id="moodSummary"></div>
       <div class="thought-summary" id="thoughtSummary"></div>
-      <button class="ghost" type="button" id="openDayStateBtn">记录状态</button>
+      <button class="ghost" type="button" id="openDayStateBtn">记录</button>
     </section>
 
     <section class="ddl-strip" aria-label="DDL 项目">
@@ -2434,6 +2509,10 @@
         <button class="metric-button" type="button" id="baselineMetricBtn" data-rating-filter="baseline">
           <span>保底完成</span>
           <strong id="pendingCount">0</strong>
+        </button>
+        <button class="metric-button" type="button" id="unplannedMetricBtn" data-rating-filter="unplanned">
+          <span>计划外</span>
+          <strong id="unplannedCount">0</strong>
         </button>
         <button class="metric-button" type="button" id="focusTimeBtn">
           <span>累计时间</span>
@@ -2582,10 +2661,11 @@
           </div>
         </div>
         <fieldset class="rating-options compact-rating">
-          <legend>达成感</legend>
-          <label><input type="radio" name="taskRating" value="baseline">🌱 保底完成</label>
-          <label><input type="radio" name="taskRating" value="partial">🌤 有所推进</label>
-          <label><input type="radio" name="taskRating" value="full" checked>🌟 圆满完成</label>
+          <legend>完成情况</legend>
+          <label><input type="radio" name="taskRating" value="baseline">🤲 保底完成</label>
+          <label><input type="radio" name="taskRating" value="partial">👏 有所推进</label>
+          <label><input type="radio" name="taskRating" value="full" checked>🎉 圆满完成</label>
+          <label><input type="radio" name="taskRating" value="unplanned">✨ 计划外</label>
         </fieldset>
         <input id="taskNote" type="text" placeholder="备注，可选">
       </div>
@@ -2629,10 +2709,10 @@
 
   <dialog id="dayStateDialog">
     <form class="dialog-body" id="dayStateForm" method="dialog">
-      <h2 id="dayStateTitle">记录今日状态</h2>
+      <h2 id="dayStateTitle">记录整体状态</h2>
       <fieldset class="mood-picker" id="moodPicker"></fieldset>
       <div class="field">
-        <label for="thoughtText">想法记录</label>
+        <label for="thoughtText">想法</label>
         <textarea id="thoughtText" placeholder="写点今天想留下的话，可以用 emoji"></textarea>
       </div>
       <div class="thought-list" id="thoughtList"></div>
@@ -2697,6 +2777,8 @@
     state.pendingSyncAction = "";
 
     const els = {
+      topbar: document.querySelector("#topbar"),
+      calendarRangeTitle: document.querySelector("#calendarRangeTitle"),
       todayBtn: document.querySelector("#todayBtn"),
       tomorrowBtn: document.querySelector("#tomorrowBtn"),
       rangeStart: document.querySelector("#rangeStart"),
@@ -2733,6 +2815,7 @@
       addProjectBtn: document.querySelector("#addProjectBtn"),
       dailyView: document.querySelector("#dailyView"),
       dayStateStrip: document.querySelector("#dayStateStrip"),
+      stateStripTitle: document.querySelector("#stateStripTitle"),
       moodSummary: document.querySelector("#moodSummary"),
       thoughtSummary: document.querySelector("#thoughtSummary"),
       openDayStateBtn: document.querySelector("#openDayStateBtn"),
@@ -2752,6 +2835,7 @@
       calendarGrid: document.querySelector("#calendarGrid"),
       totalCount: document.querySelector("#totalCount"),
       pendingCount: document.querySelector("#pendingCount"),
+      unplannedCount: document.querySelector("#unplannedCount"),
       doneCount: document.querySelector("#doneCount"),
       doneRate: document.querySelector("#doneRate"),
       metricButtons: document.querySelectorAll("[data-rating-filter]"),
@@ -3168,7 +3252,7 @@
       state.rangeStart = getFirstRecordDate(today);
       state.rangeEnd = today;
       state.selectedDate = today;
-      state.calendarAnchorDate = today;
+      state.calendarAnchorDate = "";
       state.ratingFilter = "all";
       state.viewMode = "calendar";
       els.rangeStart.value = state.rangeStart;
@@ -3880,17 +3964,12 @@
     function resetDefaultSort() {
       state.sortKey = "";
       state.sortDir = "asc";
-      if (state.todoListView === "project") {
-        state.tasks.forEach((task) => {
-          task.projectManualOrder = false;
-          task.projectOrder = 9999;
-        });
-      } else {
-        getBaseVisibleTasks().forEach((task, index) => {
-          task.manualOrder = false;
-          task.order = index + 1;
-        });
-      }
+      getBaseVisibleTasks().forEach((task, index) => {
+        task.manualOrder = false;
+        task.order = index + 1;
+        task.projectManualOrder = false;
+        task.projectOrder = 9999;
+      });
       saveData();
       render();
     }
@@ -3900,11 +3979,7 @@
       if (!row) return;
       state.draggingTaskId = row.dataset.taskId;
       state.draggingProjectKey = row.dataset.projectKey || "";
-      if (state.todoListView === "project") {
-        document.querySelectorAll(`[data-project-key="${state.draggingProjectKey}"]`).forEach((item) => item.classList.add("dragging"));
-      } else {
-        row.classList.add("dragging");
-      }
+      row.classList.add("dragging");
       event.dataTransfer.effectAllowed = "move";
       event.dataTransfer.setData("text/plain", row.dataset.taskId);
     }
@@ -3917,7 +3992,6 @@
     }
 
     function canDropOnRow(row) {
-      if (state.todoListView === "project") return true;
       const source = state.tasks.find((task) => task.id === state.draggingTaskId);
       const target = state.tasks.find((task) => task.id === row.dataset.taskId);
       if (!source || !target) return false;
@@ -3938,11 +4012,8 @@
         handleDragEnd();
         return;
       }
-      if (state.todoListView === "project") reorderProjectGroups(state.draggingProjectKey, row.dataset.projectKey);
-      else {
-        assignDraggedTaskBucket(state.draggingTaskId, row.dataset.taskId);
-        reorderVisibleTasks(state.draggingTaskId, row.dataset.taskId);
-      }
+      assignDraggedTaskBucket(state.draggingTaskId, row.dataset.taskId);
+      reorderVisibleTasks(state.draggingTaskId, row.dataset.taskId);
       saveData();
       render();
     }
@@ -4066,7 +4137,8 @@
         els.dayStateStrip.classList.remove("range-mode");
         els.dayStateStrip.style.setProperty("--mood-bg", mood.bg);
         els.dayStateStrip.style.setProperty("--mood-color", mood.color);
-        els.moodSummary.innerHTML = `<span>${friendlyDate(state.selectedDate)}</span><strong>${mood.label}</strong>`;
+        els.stateStripTitle.innerHTML = `<span>${friendlyDate(state.selectedDate)}</span><strong>整体状态</strong>`;
+        els.moodSummary.innerHTML = `<span>感受</span><strong><span class="mood-emoji emoji-mark">${mood.emoji}</span>${mood.label}</strong>`;
         if (latest) {
           const tooltip = note.thoughts.map((item) => `${formatThoughtTime(item.createdAt)} · ${item.text}`).join("\n");
           els.thoughtSummary.dataset.tooltip = tooltip;
@@ -4081,7 +4153,7 @@
           els.thoughtSummary.innerHTML = `<span>想法记录</span><div class="thought-line"><span class="thought-text">今天还没有留下想法</span></div>`;
         }
         els.openDayStateBtn.hidden = false;
-        els.openDayStateBtn.textContent = "记录状态";
+        els.openDayStateBtn.textContent = "记录";
         return;
       }
 
@@ -4090,7 +4162,8 @@
       els.dayStateStrip.classList.add("range-mode");
       els.dayStateStrip.style.setProperty("--mood-bg", "rgba(255, 250, 241, 0.9)");
       els.dayStateStrip.style.setProperty("--mood-color", "var(--accent-strong)");
-      els.moodSummary.innerHTML = `${renderMoodCurve(notes)}<strong>整体状态</strong>`;
+      els.stateStripTitle.innerHTML = `<span>${getCurrentRangeLabel()}</span><strong>整体状态</strong>`;
+      els.moodSummary.innerHTML = `<span>感受</span>${renderMoodCurve(notes)}`;
       delete els.thoughtSummary.dataset.tooltip;
       delete els.thoughtSummary.dataset.tooltipAlways;
       els.thoughtSummary.innerHTML = `<span>想法记录</span><div class="thought-line"><span class="thought-text">这期间你有 ${thoughtDays} 天记录了自己的想法</span></div>`;
@@ -4106,10 +4179,20 @@
       const weekStart = getWeekStart(today);
 
       const firstDate = getFirstRecordDate(today);
+      els.topbar.classList.toggle("calendar-mode", state.viewMode === "calendar");
+      els.calendarRangeTitle.textContent = state.viewMode === "calendar" ? getCalendarMonthRangeLabel() : "";
       els.todayBtn.classList.toggle("active", state.viewMode === "date" && state.selectedDate === today);
       els.tomorrowBtn.classList.toggle("active", state.viewMode === "range" && state.rangeStart === weekStart && state.rangeEnd === today);
       els.allTimeBtn.classList.toggle("active", state.viewMode !== "calendar" && state.rangeStart === firstDate && (state.rangeEnd === today || (firstDate === today && !state.rangeEnd)));
       els.showAllBtn.textContent = state.viewMode === "calendar" ? "返回" : "日历";
+    }
+
+    function getCalendarMonthRangeLabel() {
+      const start = new Date(`${state.rangeStart}T00:00:00`);
+      const end = new Date(`${state.rangeEnd || state.rangeStart}T00:00:00`);
+      const startText = `${start.getFullYear()}年${start.getMonth() + 1}月`;
+      const endText = `${end.getFullYear()}年${end.getMonth() + 1}月`;
+      return startText === endText ? startText : `${startText} - ${endText}`;
     }
 
     function renderProjects() {
@@ -4193,6 +4276,7 @@
       els.doneCount.textContent = ratingCounts.full;
       els.doneRate.textContent = ratingCounts.partial;
       els.pendingCount.textContent = ratingCounts.baseline;
+      els.unplannedCount.textContent = ratingCounts.unplanned;
       els.focusTime.textContent = formatCompactDuration(sumMinutes(baseTasks));
       els.metricButtons.forEach((button) => button.classList.toggle("active", (button.dataset.ratingFilter || "all") === state.ratingFilter));
       renderTaskHeader();
@@ -4207,7 +4291,7 @@
         const key = task.completionRating || "full";
         if (counts[key] !== undefined) counts[key] += 1;
         return counts;
-      }, { full: 0, partial: 0, baseline: 0 });
+      }, { full: 0, partial: 0, baseline: 0, unplanned: 0 });
     }
 
     function applyRatingFilter(tasks) {
@@ -4218,7 +4302,7 @@
     function renderTaskHeader() {
       const projectView = false;
       els.taskTable.classList.toggle("project-table-view", false);
-      const columns = [["timeBucket", "时间"], ["text", "事件"], ["project", "项目"], ["targetDate", "日期"], ["durationMinutes", "投入时间"], ["completionRating", "达成感"], ["note", "备注"]];
+      const columns = [["timeBucket", "时间"], ["text", "事件"], ["project", "项目"], ["targetDate", "日期"], ["durationMinutes", "投入时间"], ["completionRating", "完成情况"], ["note", "备注"]];
       const headers = columns.map(([key, label]) => {
         const active = state.sortKey === key;
         const mark = active && state.sortDir === "desc" ? "↓" : "↑";
@@ -4259,7 +4343,7 @@
     }
 
     function getRatingRank(value) {
-      return { baseline: 1, partial: 2, full: 3 }[value || "full"] || 3;
+      return { baseline: 1, partial: 2, full: 3, unplanned: 4 }[value || "full"] || 3;
     }
 
     function toggleTodoListView() {
@@ -4344,7 +4428,7 @@
       const timeCell = `<span class="planned-time" data-task-field="timeBucket" title="双击或右键修改时间">${getTaskDisplaySection(task)}</span>`;
       const dateCell = `<span data-task-field="targetDate" title="双击或右键修改日期">${friendlyDate(task.targetDate)}</span>`;
       const durationCell = `<span class="completion-record" data-task-field="durationMinutes" title="双击或右键修改投入时间">${task.durationMinutes ? formatDuration(task.durationMinutes) : "未填写"}</span>`;
-      const ratingCell = `<span class="status" data-task-field="completionRating" title="双击或右键修改达成感">${rating.emoji} ${rating.label}</span>`;
+      const ratingCell = `<span class="status" data-task-field="completionRating" title="双击或右键修改完成情况">${rating.emoji} ${rating.label}</span>`;
       const noteCell = `<div class="task-title task-remark" data-task-field="note" data-tooltip="${escapeHtml(note)}" aria-label="${escapeHtml(note)}">${note ? escapeHtml(note) : "-"}</div>`;
       const actionCell = `
           <td>
@@ -4365,10 +4449,12 @@
       const end = state.rangeEnd;
       els.calendarTitle.textContent = `${friendlyDate(start)} - ${friendlyDate(end)}`;
       els.calendarGrid.innerHTML = renderMonthCalendars(start, end);
-      const anchorDate = state.calendarAnchorDate || formatDate(new Date());
-      const anchor = els.calendarGrid.querySelector(`[data-date="${anchorDate}"]`);
-      if (anchor) setTimeout(() => anchor.scrollIntoView({ block: "center", inline: "nearest" }), 0);
-      state.calendarAnchorDate = "";
+      const anchorDate = state.calendarAnchorDate;
+      if (anchorDate) {
+        const anchor = els.calendarGrid.querySelector(`[data-date="${anchorDate}"]`);
+        if (anchor) setTimeout(() => anchor.scrollIntoView({ block: "center", inline: "nearest" }), 0);
+        state.calendarAnchorDate = "";
+      }
     }
 
     function handleCalendarDayOpen(event) {
@@ -4836,13 +4922,13 @@
 
     function getMoodOptions() {
       return [
-        { value: "very-unpleasant", label: "非常不愉快", emoji: "🌧", color: "#5c6f83", bg: "rgba(218, 228, 232, 0.82)" },
-        { value: "unpleasant", label: "不愉快", emoji: "🌫", color: "#647b72", bg: "rgba(224, 234, 225, 0.82)" },
+        { value: "very-unpleasant", label: "非常不愉快", emoji: "🥀", color: "#6c5b50", bg: "rgba(232, 222, 212, 0.82)" },
+        { value: "unpleasant", label: "不愉快", emoji: "🌧️", color: "#5c6f83", bg: "rgba(218, 228, 232, 0.82)" },
         { value: "slightly-unpleasant", label: "有点不愉快", emoji: "☁️", color: "#6f897f", bg: "rgba(230, 239, 229, 0.82)" },
-        { value: "neutral", label: "不悲不喜", emoji: "◦", color: "#8a684f", bg: "rgba(246, 238, 222, 0.86)" },
-        { value: "slightly-pleasant", label: "有点愉快", emoji: "🌤", color: "#b87535", bg: "rgba(255, 237, 210, 0.86)" },
+        { value: "neutral", label: "不悲不喜", emoji: "🌝", color: "#8a684f", bg: "rgba(246, 238, 222, 0.86)" },
+        { value: "slightly-pleasant", label: "有点愉快", emoji: "🌤️", color: "#b87535", bg: "rgba(255, 237, 210, 0.86)" },
         { value: "pleasant", label: "愉快", emoji: "☀️", color: "#c45f32", bg: "rgba(255, 226, 198, 0.88)" },
-        { value: "very-pleasant", label: "非常愉快", emoji: "🌼", color: "#d08b25", bg: "rgba(255, 214, 148, 0.86)" }
+        { value: "very-pleasant", label: "非常愉快", emoji: "🌻", color: "#d08b25", bg: "rgba(255, 214, 148, 0.86)" }
       ];
     }
 
@@ -4852,9 +4938,10 @@
 
     function getRatingMap() {
       return {
-        baseline: { label: "保底完成", emoji: "🌱" },
-        partial: { label: "有所推进", emoji: "🌤" },
-        full: { label: "圆满完成", emoji: "🌟" }
+        baseline: { label: "保底完成", emoji: "🤲" },
+        partial: { label: "有所推进", emoji: "👏" },
+        full: { label: "圆满完成", emoji: "🎉" },
+        unplanned: { label: "计划外", emoji: "✨" }
       };
     }
 
@@ -5010,8 +5097,8 @@
       const date = state.viewMode === "date" ? state.selectedDate : (state.rangeEnd || state.selectedDate);
       state.editingDayStateDate = date;
       const note = getDayNote(date);
-      els.dayStateTitle.textContent = `${friendlyDate(date)} · 今天整体状态`;
-      els.moodPicker.innerHTML = `<legend>今天整体状态</legend>` + getMoodOptions().map((mood) => `
+      els.dayStateTitle.textContent = `${friendlyDate(date)} · 整体状态`;
+      els.moodPicker.innerHTML = `<legend>感受</legend>` + getMoodOptions().map((mood) => `
         <label style="--mood-option-bg:${mood.bg};--mood-option-color:${mood.color}">
           <input type="radio" name="dayMood" value="${mood.value}" ${note.mood === mood.value ? "checked" : ""}>
           ${mood.emoji}<br>${mood.label}
