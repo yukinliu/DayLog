@@ -88,9 +88,37 @@
 
     .calendar-range-title {
       display: none;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .calendar-range-title button,
+    .calendar-range-title select {
+      min-height: 38px;
+      border-radius: 7px;
+      font-size: 15px;
+      font-weight: 760;
+    }
+
+    .calendar-range-title button {
+      padding: 0 14px;
+      color: var(--accent);
+      border: 1px solid rgba(185, 79, 50, 0.16);
+      background: rgba(255, 248, 236, 0.7);
+    }
+
+    .calendar-range-title button.active {
+      background: rgba(255, 248, 236, 0.96);
+      box-shadow: inset 0 0 0 1px rgba(185, 79, 50, 0.12);
+    }
+
+    .calendar-range-title select {
+      width: auto;
+      min-width: 108px;
+      padding-right: 28px;
       color: var(--text);
-      font-size: 18px;
-      font-weight: 820;
+      background: #fffdf7;
     }
 
     .topbar.calendar-mode {
@@ -98,7 +126,7 @@
     }
 
     .topbar.calendar-mode .calendar-range-title {
-      display: block;
+      display: flex;
     }
 
     .topbar.calendar-mode .segmented,
@@ -165,16 +193,16 @@
     .range-control .range-helper {
       min-height: 38px;
       padding: 0 12px;
-      color: var(--teal);
-      border: 1px solid rgba(40, 127, 116, 0.24);
-      background: rgba(220, 239, 230, 0.7);
+      color: var(--accent);
+      border: 1px solid rgba(185, 79, 50, 0.14);
+      background: rgba(255, 248, 236, 0.52);
       box-shadow: none;
     }
 
     .range-control .range-helper.active {
-      border-color: rgba(40, 127, 116, 0.42);
-      background: rgba(220, 239, 230, 0.98);
-      box-shadow: inset 0 0 0 2px rgba(40, 127, 116, 0.1);
+      border-color: rgba(185, 79, 50, 0.22);
+      background: rgba(255, 248, 236, 0.82);
+      box-shadow: inset 0 0 0 1px rgba(185, 79, 50, 0.08);
     }
 
     input,
@@ -1095,7 +1123,7 @@
 
     .day-state-strip {
       display: grid;
-      grid-template-columns: minmax(140px, 0.45fr) minmax(210px, 0.85fr) minmax(0, 1.45fr) auto;
+      grid-template-columns: minmax(230px, 0.95fr) minmax(0, 1.65fr) auto;
       gap: 12px;
       align-items: stretch;
       min-height: 74px;
@@ -1108,7 +1136,7 @@
     }
 
     .day-state-strip.range-mode {
-      grid-template-columns: minmax(140px, 0.45fr) minmax(320px, 1.25fr) minmax(0, 1fr);
+      grid-template-columns: minmax(340px, 1.25fr) minmax(0, 1fr);
       cursor: default;
     }
 
@@ -1127,9 +1155,7 @@
     }
 
     .state-strip-title {
-      display: grid;
-      align-content: center;
-      gap: 3px;
+      display: none;
     }
 
     .state-strip-title span,
@@ -2450,7 +2476,11 @@
 <body>
   <main class="app">
     <section class="topbar" id="topbar" aria-label="日期控制">
-      <div class="calendar-range-title" id="calendarRangeTitle"></div>
+      <div class="calendar-range-title" id="calendarRangeTitle" aria-label="日历筛选">
+        <button type="button" id="calendarAllBtn">全部</button>
+        <select id="calendarYearSelect" aria-label="选择年份"></select>
+        <select id="calendarMonthSelect" aria-label="选择月份"></select>
+      </div>
       <div class="segmented" role="tablist" aria-label="快速切换日期">
         <button type="button" id="todayBtn">今天</button>
         <button type="button" id="tomorrowBtn">本周</button>
@@ -2772,6 +2802,8 @@
     state.editingDayStateDate = "";
     state.account = normalizeAccount(state.account);
     state.calendarAnchorDate = "";
+    state.calendarFilterYear = "";
+    state.calendarFilterMonth = "";
     state.preCalendarContext = null;
     state.projectFilterKey = "";
     state.pendingSyncAction = "";
@@ -2779,6 +2811,9 @@
     const els = {
       topbar: document.querySelector("#topbar"),
       calendarRangeTitle: document.querySelector("#calendarRangeTitle"),
+      calendarAllBtn: document.querySelector("#calendarAllBtn"),
+      calendarYearSelect: document.querySelector("#calendarYearSelect"),
+      calendarMonthSelect: document.querySelector("#calendarMonthSelect"),
       todayBtn: document.querySelector("#todayBtn"),
       tomorrowBtn: document.querySelector("#tomorrowBtn"),
       rangeStart: document.querySelector("#rangeStart"),
@@ -2894,6 +2929,9 @@
       els.rangeEnd.addEventListener("change", updateDateControls);
       els.allTimeBtn.addEventListener("click", selectAllTime);
       els.showAllBtn.addEventListener("click", toggleCalendarView);
+      els.calendarAllBtn.addEventListener("click", selectCalendarAll);
+      els.calendarYearSelect.addEventListener("change", handleCalendarYearChange);
+      els.calendarMonthSelect.addEventListener("change", handleCalendarMonthChange);
       els.accountCenterBtn.addEventListener("click", openAccountDrawer);
       els.accountCloseBtn.addEventListener("click", closeAccountDrawer);
       els.accountBackdrop.addEventListener("click", closeAccountDrawer);
@@ -3253,6 +3291,8 @@
       state.rangeEnd = today;
       state.selectedDate = today;
       state.calendarAnchorDate = "";
+      state.calendarFilterYear = "";
+      state.calendarFilterMonth = "";
       state.ratingFilter = "all";
       state.viewMode = "calendar";
       els.rangeStart.value = state.rangeStart;
@@ -4137,20 +4177,20 @@
         els.dayStateStrip.classList.remove("range-mode");
         els.dayStateStrip.style.setProperty("--mood-bg", mood.bg);
         els.dayStateStrip.style.setProperty("--mood-color", mood.color);
-        els.stateStripTitle.innerHTML = `<span>${friendlyDate(state.selectedDate)}</span><strong>整体状态</strong>`;
+        els.stateStripTitle.innerHTML = "";
         els.moodSummary.innerHTML = `<span>感受</span><strong><span class="mood-emoji emoji-mark">${mood.emoji}</span>${mood.label}</strong>`;
         if (latest) {
           const tooltip = note.thoughts.map((item) => `${formatThoughtTime(item.createdAt)} · ${item.text}`).join("\n");
           els.thoughtSummary.dataset.tooltip = tooltip;
           els.thoughtSummary.dataset.tooltipAlways = "true";
           els.thoughtSummary.innerHTML = `
-            <span>最近想法</span>
+            <span>想法</span>
             <div class="thought-line"><time class="thought-time">${escapeHtml(formatThoughtTime(latest.createdAt))}</time><span class="thought-text">${escapeHtml(latest.text)}</span></div>
           `;
         } else {
           delete els.thoughtSummary.dataset.tooltip;
           delete els.thoughtSummary.dataset.tooltipAlways;
-          els.thoughtSummary.innerHTML = `<span>想法记录</span><div class="thought-line"><span class="thought-text">今天还没有留下想法</span></div>`;
+          els.thoughtSummary.innerHTML = `<span>想法</span><div class="thought-line"><span class="thought-text">今天还没有留下想法</span></div>`;
         }
         els.openDayStateBtn.hidden = false;
         els.openDayStateBtn.textContent = "记录";
@@ -4162,11 +4202,11 @@
       els.dayStateStrip.classList.add("range-mode");
       els.dayStateStrip.style.setProperty("--mood-bg", "rgba(255, 250, 241, 0.9)");
       els.dayStateStrip.style.setProperty("--mood-color", "var(--accent-strong)");
-      els.stateStripTitle.innerHTML = `<span>${getCurrentRangeLabel()}</span><strong>整体状态</strong>`;
+      els.stateStripTitle.innerHTML = "";
       els.moodSummary.innerHTML = `<span>感受</span>${renderMoodCurve(notes)}`;
       delete els.thoughtSummary.dataset.tooltip;
       delete els.thoughtSummary.dataset.tooltipAlways;
-      els.thoughtSummary.innerHTML = `<span>想法记录</span><div class="thought-line"><span class="thought-text">这期间你有 ${thoughtDays} 天记录了自己的想法</span></div>`;
+      els.thoughtSummary.innerHTML = `<span>想法</span><div class="thought-line"><span class="thought-text">这期间你有 ${thoughtDays} 天记录了自己的想法</span></div>`;
       els.openDayStateBtn.hidden = true;
     }
 
@@ -4180,18 +4220,80 @@
 
       const firstDate = getFirstRecordDate(today);
       els.topbar.classList.toggle("calendar-mode", state.viewMode === "calendar");
-      els.calendarRangeTitle.textContent = state.viewMode === "calendar" ? getCalendarMonthRangeLabel() : "";
+      if (state.viewMode === "calendar") renderCalendarFilterControls();
       els.todayBtn.classList.toggle("active", state.viewMode === "date" && state.selectedDate === today);
       els.tomorrowBtn.classList.toggle("active", state.viewMode === "range" && state.rangeStart === weekStart && state.rangeEnd === today);
       els.allTimeBtn.classList.toggle("active", state.viewMode !== "calendar" && state.rangeStart === firstDate && (state.rangeEnd === today || (firstDate === today && !state.rangeEnd)));
       els.showAllBtn.textContent = state.viewMode === "calendar" ? "返回" : "日历";
     }
 
+    function renderCalendarFilterControls() {
+      const years = getCalendarAvailableYears();
+      const selectedYear = state.calendarFilterYear || "";
+      const selectedMonth = state.calendarFilterMonth || "";
+      els.calendarAllBtn.classList.toggle("active", !selectedYear);
+      els.calendarYearSelect.innerHTML = `<option value="" ${selectedYear ? "" : "selected"}>选择年份</option>`
+        + years.map((year) => `<option value="${year}" ${String(year) === selectedYear ? "selected" : ""}>${year}年</option>`).join("");
+      els.calendarYearSelect.value = selectedYear;
+      els.calendarMonthSelect.innerHTML = `<option value="" ${selectedMonth ? "" : "selected"}>全年</option>`
+        + Array.from({ length: 12 }, (_, index) => {
+          const month = String(index + 1);
+          return `<option value="${month}" ${month === selectedMonth ? "selected" : ""}>${index + 1}月</option>`;
+        }).join("");
+      els.calendarMonthSelect.disabled = !selectedYear;
+    }
+
+    function selectCalendarAll() {
+      state.calendarFilterYear = "";
+      state.calendarFilterMonth = "";
+      render();
+    }
+
+    function handleCalendarYearChange() {
+      state.calendarFilterYear = els.calendarYearSelect.value || "";
+      state.calendarFilterMonth = "";
+      render();
+    }
+
+    function handleCalendarMonthChange() {
+      if (!state.calendarFilterYear) return;
+      state.calendarFilterMonth = els.calendarMonthSelect.value || "";
+      render();
+    }
+
+    function getCalendarAvailableYears() {
+      const today = formatDate(new Date());
+      const first = getFirstRecordDate(today);
+      const startYear = new Date(`${first}T00:00:00`).getFullYear();
+      const endYear = new Date(`${today}T00:00:00`).getFullYear();
+      return Array.from({ length: Math.max(1, endYear - startYear + 1) }, (_, index) => startYear + index);
+    }
+
+    function getCalendarDisplayRange() {
+      const today = formatDate(new Date());
+      const first = getFirstRecordDate(today);
+      const year = Number(state.calendarFilterYear);
+      const month = Number(state.calendarFilterMonth);
+      if (!year) return { start: first, end: today };
+
+      let start = `${year}-01-01`;
+      let end = `${year}-12-31`;
+      if (month) {
+        start = `${year}-${String(month).padStart(2, "0")}-01`;
+        end = formatDate(new Date(year, month, 0));
+      }
+      if (start < first) start = first;
+      if (end > today) end = today;
+      if (start > end) start = end;
+      return { start, end };
+    }
+
     function getCalendarMonthRangeLabel() {
-      const start = new Date(`${state.rangeStart}T00:00:00`);
-      const end = new Date(`${state.rangeEnd || state.rangeStart}T00:00:00`);
-      const startText = `${start.getFullYear()}年${start.getMonth() + 1}月`;
-      const endText = `${end.getFullYear()}年${end.getMonth() + 1}月`;
+      const { start, end } = getCalendarDisplayRange();
+      const startDate = new Date(`${start}T00:00:00`);
+      const endDate = new Date(`${end || start}T00:00:00`);
+      const startText = `${startDate.getFullYear()}年${startDate.getMonth() + 1}月`;
+      const endText = `${endDate.getFullYear()}年${endDate.getMonth() + 1}月`;
       return startText === endText ? startText : `${startText} - ${endText}`;
     }
 
@@ -4445,9 +4547,8 @@
     }
 
     function renderCalendar() {
-      const start = state.rangeStart;
-      const end = state.rangeEnd;
-      els.calendarTitle.textContent = `${friendlyDate(start)} - ${friendlyDate(end)}`;
+      const { start, end } = getCalendarDisplayRange();
+      els.calendarTitle.textContent = getCalendarMonthRangeLabel();
       els.calendarGrid.innerHTML = renderMonthCalendars(start, end);
       const anchorDate = state.calendarAnchorDate;
       if (anchorDate) {
@@ -5068,7 +5169,7 @@
 
     function openMoodDetailDialog() {
       const notes = getNotesInCurrentRange();
-      els.noteDetailTitle.textContent = "整体状态趋势";
+      els.noteDetailTitle.textContent = "整体趋势";
       els.noteDetailBody.innerHTML = renderMoodCurve(notes, true);
       els.noteDetailDialog.showModal();
     }
