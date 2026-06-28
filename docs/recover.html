@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>每日任务表 - 数据检查</title>
+  <title>DayLog · 时光日志 - 数据检查</title>
   <style>
     :root { color-scheme: light; --bg:#efd9b1; --panel:#fffaf1; --text:#332115; --muted:#80634c; --line:#dfc18b; --accent:#b94f32; --teal:#287f74; }
     * { box-sizing: border-box; }
@@ -29,7 +29,7 @@
 <main>
   <section>
     <h1>数据检查</h1>
-    <p>这个页面只读取当前浏览器里的每日任务表数据。先看结果，不会自动修改。</p>
+    <p>这个页面只读取当前浏览器里的DayLog 时光日志数据。先看结果，不会自动修改。</p>
   </section>
   <section>
     <h2>当前状态</h2>
@@ -40,7 +40,7 @@
     <div class="actions">
       <button id="restoreBackup" class="secondary" type="button">用备份恢复主数据</button>
       <button id="copyReport" type="button">复制诊断信息</button>
-      <a class="button secondary" href="./">返回任务表</a>
+      <a class="button secondary" href="./">返回时光日志</a>
     </div>
     <p id="message" style="margin-top:10px"></p>
   </section>
@@ -50,8 +50,8 @@
   </section>
 </main>
 <script>
-  const MAIN = 'daily-todo-table-v1';
-  const BACKUP = 'daily-todo-table-v1-backup';
+  const MAIN = 'daylog-v1';
+  const BACKUP = 'daylog-v1-backup';
   const summary = document.querySelector('#summary');
   const report = document.querySelector('#report');
   const message = document.querySelector('#message');
@@ -71,7 +71,7 @@
   function inspect() {
     const mainRaw = localStorage.getItem(MAIN);
     const backupRaw = localStorage.getItem(BACKUP);
-    const keys = Object.keys(localStorage).filter((key) => key.includes('todo') || key.includes('daily'));
+    const keys = Object.keys(localStorage).filter((key) => key.includes('todo') || key.includes('daily') || key.includes('daylog'));
     const main = parse(mainRaw);
     const backup = parse(backupRaw);
     const items = [
@@ -90,7 +90,7 @@
       backupPreview: backupRaw ? backupRaw.slice(0, 900) : ''
     };
     report.textContent = JSON.stringify(payload, null, 2);
-    if ((main.tasks || 0) || (main.projects || 0)) message.innerHTML = '<span class="ok">主数据还在。</span>返回任务表后如果仍为空，说明主页面读取逻辑还有问题。';
+    if ((main.tasks || 0) || (main.projects || 0)) message.innerHTML = '<span class="ok">主数据还在。</span>返回时光日志后如果仍为空，说明主页面读取逻辑还有问题。';
     else if ((backup.tasks || 0) || (backup.projects || 0)) message.innerHTML = '<span class="ok">发现备份。</span>可以点击“用备份恢复主数据”。';
     else message.innerHTML = '<span class="bad">当前域名下没有找到 todo 或项目数据。</span>这通常说明数据已经被空状态覆盖，或之前数据在另一个地址/浏览器里。';
   }
@@ -103,7 +103,7 @@
       return;
     }
     localStorage.setItem(MAIN, backupRaw);
-    message.innerHTML = '<span class="ok">已恢复。</span>现在可以返回任务表刷新查看。';
+    message.innerHTML = '<span class="ok">已恢复。</span>现在可以返回时光日志刷新查看。';
     inspect();
   });
 

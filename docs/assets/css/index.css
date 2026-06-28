@@ -70,6 +70,52 @@
       backdrop-filter: blur(2px);
     }
 
+
+    .greeting-strip {
+      display: grid;
+      grid-template-columns: minmax(220px, auto) minmax(0, 1fr);
+      gap: 14px;
+      align-items: center;
+      margin: -2px 0 12px;
+      padding: 12px 16px;
+      border: 1px solid rgba(223, 193, 139, 0.72);
+      border-radius: 10px;
+      background: linear-gradient(135deg, rgba(255, 252, 244, 0.9), rgba(238, 249, 240, 0.58));
+      color: var(--muted);
+      box-shadow: 0 10px 24px rgba(80, 49, 20, 0.07);
+    }
+
+    .greeting-brand {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px 12px;
+      min-width: 0;
+    }
+
+    .greeting-brand strong {
+      color: rgba(51, 33, 21, 0.88);
+      font-size: 15px;
+      font-weight: 820;
+    }
+
+    .greeting-brand span {
+      color: rgba(128, 99, 76, 0.72);
+      font-size: 12px;
+      font-weight: 720;
+    }
+
+    .greeting-message {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: rgba(40, 127, 116, 0.92);
+      font-size: 14px;
+      font-weight: 760;
+      text-align: right;
+    }
+
     .topbar {
       display: grid;
       grid-template-columns: auto minmax(260px, 1fr) auto;
@@ -2369,6 +2415,7 @@
 
       .topbar,
       .topbar.calendar-mode,
+      .greeting-strip,
       .status-panel,
       .day-state-strip,
       .day-state-strip.range-mode,
@@ -2378,6 +2425,10 @@
 
       .range-control {
         justify-content: start;
+      }
+
+      .greeting-message {
+        text-align: left;
       }
 
       .range-control input {

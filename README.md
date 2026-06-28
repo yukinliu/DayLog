@@ -1,6 +1,15 @@
-# Daily Review · 复盘记录
+# DayLog · 时光日志
 
-一个本地优先的复盘记录工具，用来记录已经完成的事件、投入时间、完成情况、项目归属、整体感受和想法。数据默认保存在用户自己的浏览器里，因此不同用户、不同浏览器之间的数据彼此独立。
+一个本地优先的时光日志工具，用来记录已经完成的事件、投入时间、完成情况、项目归属、整体感受和想法。数据默认保存在用户自己的浏览器里，因此不同用户、不同浏览器之间的数据彼此独立。
+
+## 产品信息
+
+- 中文名：时光日志
+- 英文名：DayLog
+- Slogan：念起觉心，知深见己。
+- 提供方：刘迷糊
+
+随机问候语存放在 `docs/data/greetings.rtf`。每行一句，页面会自动去掉行首编号后随机显示。
 
 ## 在线页面
 
@@ -13,7 +22,7 @@ GitHub Pages 当前从 `docs/` 目录发布。
 ## GitHub 仓库结构
 
 ```text
-daily-review/
+DayLog/
 ├── README.md
 ├── .gitignore
 └── docs/
@@ -58,7 +67,7 @@ daily-review/
 这些文件保留在电脑本地，便于后续维护，但不会出现在 GitHub 仓库里：
 
 - `daily-todo-table.html`：旧版本地单文件。
-- `每日任务表.app/`：本地桌面快捷入口。
+- `时光日志.app/`：本地桌面快捷入口。
 - `daily-todo-icon.svg`、`daily-todo-icon.svg.png`：桌面图标素材。
 - `clean-icon.iconset/`、`tmp-icon.iconset/`：macOS 图标资源目录。
 - `scripts/`：本地图标生成脚本。

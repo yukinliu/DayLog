@@ -1,4 +1,5 @@
-    const STORAGE_KEY = location.pathname.endsWith("/test.html") ? "daily-review-test-v1" : "daily-todo-table-v1";
+    const STORAGE_KEY = location.pathname.endsWith("/test.html") ? "daylog-test-v1" : "daylog-v1";
+    const LEGACY_STORAGE_KEYS = location.pathname.endsWith("/test.html") ? ["daily-review-test-v1"] : ["daily-todo-table-v1", "daily-review-v1"];
     const UNASSIGNED_PROJECT = "未归类";
 
     const state = loadData();
@@ -29,6 +30,7 @@
 
     const els = {
       topbar: document.querySelector("#topbar"),
+      greetingMessage: document.querySelector("#greetingMessage"),
       calendarRangeTitle: document.querySelector("#calendarRangeTitle"),
       calendarAllBtn: document.querySelector("#calendarAllBtn"),
       calendarYearSelect: document.querySelector("#calendarYearSelect"),
@@ -245,6 +247,8 @@
     function init() {
       els.rangeStart.value = state.selectedDate;
 
+      loadGreetingMessage();
+
       els.todayBtn.addEventListener("click", () => selectSingleDate(formatDate(new Date())));
       els.tomorrowBtn.addEventListener("click", selectWeekToDate);
       els.rangeStart.addEventListener("change", updateDateControls);
@@ -271,6 +275,11 @@
       els.thoughtSummary.addEventListener("mouseover", scheduleHoverTooltip);
       els.thoughtSummary.addEventListener("mousemove", moveHoverTooltip);
       els.thoughtSummary.addEventListener("mouseout", hideHoverTooltip);
+      if (els.greetingMessage) {
+        els.greetingMessage.addEventListener("mouseover", scheduleHoverTooltip);
+        els.greetingMessage.addEventListener("mousemove", moveHoverTooltip);
+        els.greetingMessage.addEventListener("mouseout", hideHoverTooltip);
+      }
       els.dayStateForm.addEventListener("submit", saveDayState);
       els.thoughtList.addEventListener("click", handleThoughtListAction);
       els.thoughtList.addEventListener("dblclick", handleThoughtInlineEdit);
@@ -478,6 +487,83 @@
     function copyProContactText() {
       copyText("YKLSAC");
       showSyncMessage("微信号已复制，前往添加。", true);
+    }
+
+
+    async function loadGreetingMessage() {
+      const fallback = "慢慢写，认真看见自己。";
+      if (!els.greetingMessage) return;
+      try {
+        const response = await fetch("data/greetings.rtf", { cache: "no-store" });
+        if (!response.ok) throw new Error("greeting file not found");
+        const raw = await response.text();
+        const lines = extractGreetingLines(raw);
+        const message = lines.length ? lines[Math.floor(Math.random() * lines.length)] : fallback;
+        setGreetingMessage(message);
+      } catch {
+        setGreetingMessage(fallback);
+      }
+    }
+
+    function setGreetingMessage(message) {
+      if (!els.greetingMessage) return;
+      els.greetingMessage.textContent = message;
+      els.greetingMessage.dataset.tooltip = message;
+    }
+
+    function extractGreetingLines(raw) {
+      const text = raw.includes("{\\rtf")
+        ? extractRtfListItems(raw).join("\n") || rtfToPlainText(raw)
+        : raw;
+      return text.split(/\r?\n/)
+        .map((line) => line.replace(/^\s*[\d０-９]+[\s.．、)）-]*/, "").trim())
+        .filter((line) => line && !line.startsWith("#"));
+    }
+
+    function extractRtfListItems(raw) {
+      const items = [];
+      const pattern = /\\strokec2\s+([\s\S]*?)(?=\\ls1\\ilvl0|\\pard|\n\})/g;
+      let match;
+      while ((match = pattern.exec(raw))) {
+        const text = decodeRtfFragment(match[1]);
+        if (text) items.push(text);
+      }
+      return items;
+    }
+
+    function rtfToPlainText(raw) {
+      return decodeRtfFragment(raw)
+        .replace(/\n{2,}/g, "\n")
+        .trim();
+    }
+
+    function decodeRtfFragment(fragment) {
+      const hexMap = {
+        91: "‘",
+        92: "’",
+        93: "“",
+        94: "”",
+        97: "—",
+        a0: " ",
+        b7: "·",
+        d7: "×"
+      };
+      return fragment
+        .replace(/\{\\listtext[\s\S]*?\}/g, "")
+        .replace(/\\u(-?\d+)\?? ?/g, (_, value) => {
+          let code = Number(value);
+          if (code < 0) code += 65536;
+          return String.fromCharCode(code);
+        })
+        .replace(/\\'([0-9a-fA-F]{2})/g, (_, hex) => hexMap[hex.toLowerCase()] || String.fromCharCode(parseInt(hex, 16)))
+        .replace(/\\par[d]?/g, "\n")
+        .replace(/\\line/g, "\n")
+        .replace(/\\[a-zA-Z]+-?\d* ?/g, "")
+        .replace(/\\[^a-zA-Z0-9]/g, "")
+        .replace(/[{}]/g, "")
+        .replace(/[\t ]+/g, " ")
+        .replace(/\s*\n\s*/g, "\n")
+        .trim();
     }
 
     function maskCode(code) {
@@ -1104,7 +1190,7 @@
 
     function scheduleHoverTooltip(event) {
       const target = event.target.closest("[data-tooltip]");
-      const inTooltipArea = els.taskBody.contains(target) || els.thoughtSummary.contains(target) || els.noteDetailBody.contains(target);
+      const inTooltipArea = els.taskBody.contains(target) || els.thoughtSummary.contains(target) || els.noteDetailBody.contains(target) || (els.greetingMessage && els.greetingMessage.contains(target));
       if (!target || !inTooltipArea || !shouldShowHoverTooltip(target)) return;
       tooltipTarget = target;
       clearTimeout(tooltipTimer);
@@ -2443,7 +2529,15 @@
 
     function loadData() {
       try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        let raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          const legacyKey = LEGACY_STORAGE_KEYS.find((key) => localStorage.getItem(key));
+          if (legacyKey) {
+            raw = localStorage.getItem(legacyKey);
+            localStorage.setItem(STORAGE_KEY, raw);
+          }
+        }
+        const saved = JSON.parse(raw);
         if (Array.isArray(saved)) return migrateArrayData(saved);
 
         const data = saved || {};
