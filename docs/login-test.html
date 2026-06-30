@@ -1,101 +1,623 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>DayLog 登录测试</title>
-    <style>
-        body { font-family: Arial; padding: 40px; max-width: 400px; margin: auto; }
-        input, button { display: block; width: 100%; padding: 10px; margin: 10px 0; font-size: 16px; }
-        .message { margin-top: 20px; padding: 10px; background: #f0f0f0; }
-        .hidden { display: none; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DayLog · 登录注册</title>
+  <!-- 1. 引入 CloudBase Web SDK -->
+  <script src="https://web-9gikcbug35bad3a8-1304825656.tcloudbaseapp.com/sdk/1.7.0/cloudbase.full.js"></script>
+  <style>
+    /* ===== 重置 & 基础样式 ===== */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: #f5f7fb;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+    .card {
+      background: #fff;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+      padding: 40px 32px;
+      transition: all 0.2s;
+    }
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #1a1a2e;
+      text-align: center;
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      text-align: center;
+      color: #8892b0;
+      font-size: 14px;
+      margin-bottom: 28px;
+    }
+
+    /* ===== Tabs ===== */
+    .tabs {
+      display: flex;
+      gap: 0;
+      background: #f0f2f7;
+      border-radius: 12px;
+      padding: 4px;
+      margin-bottom: 24px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 10px 0;
+      border: none;
+      background: transparent;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      color: #4a5568;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab-btn.active {
+      background: #fff;
+      color: #4f6ef7;
+      box-shadow: 0 2px 8px rgba(79, 110, 247, 0.12);
+    }
+    .tab-btn:hover:not(.active) { color: #1a1a2e; }
+
+    /* ===== 表单 ===== */
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 5px;
+    }
+    .form-group .input-row {
+      display: flex;
+      gap: 10px;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 10px;
+      font-size: 15px;
+      background: #fafbff;
+      transition: border 0.2s;
+      outline: none;
+    }
+    .form-group input:focus {
+      border-color: #4f6ef7;
+      background: #fff;
+    }
+    .form-group .input-row input { flex: 1; }
+    .form-group .input-row button {
+      padding: 0 18px;
+      background: #eef2ff;
+      border: none;
+      border-radius: 10px;
+      color: #4f6ef7;
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .form-group .input-row button:hover { background: #dce3ff; }
+    .form-group .input-row button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .btn-primary {
+      width: 100%;
+      padding: 14px;
+      background: #4f6ef7;
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      margin-top: 6px;
+    }
+    .btn-primary:hover { background: #3b5de7; }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .link-btn {
+      background: none;
+      border: none;
+      color: #4f6ef7;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 0 4px;
+    }
+    .link-btn:hover { text-decoration: underline; }
+
+    .message-box {
+      margin-top: 16px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      display: none;
+    }
+    .message-box.success { display: block; background: #ebf9f0; color: #1e7b4a; }
+    .message-box.error { display: block; background: #fef2f2; color: #b91c1c; }
+
+    /* ===== 用户面板（登录后） ===== */
+    .user-panel {
+      display: none;
+      margin-top: 10px;
+    }
+    .user-panel.active { display: block; }
+    .user-info {
+      background: #f8faff;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+    }
+    .user-info .email {
+      font-weight: 600;
+      font-size: 16px;
+      color: #1a1a2e;
+    }
+    .user-info .status {
+      font-size: 14px;
+      margin-top: 4px;
+      color: #64748b;
+    }
+    .user-info .status .badge {
+      display: inline-block;
+      padding: 2px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-left: 6px;
+    }
+    .badge.pro { background: #dcfce7; color: #15803d; }
+    .badge.free { background: #f1f3f5; color: #64748b; }
+
+    .activate-section {
+      background: #f8faff;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 16px;
+    }
+    .activate-section .row {
+      display: flex;
+      gap: 10px;
+      margin-top: 8px;
+    }
+    .activate-section .row input { flex: 1; }
+    .activate-section .row button {
+      padding: 0 20px;
+      background: #4f6ef7;
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .activate-section .row button:hover { background: #3b5de7; }
+
+    .logout-btn {
+      width: 100%;
+      padding: 12px;
+      background: #f1f3f5;
+      border: none;
+      border-radius: 10px;
+      font-weight: 600;
+      color: #4a5568;
+      cursor: pointer;
+      transition: background 0.2s;
+      margin-top: 4px;
+    }
+    .logout-btn:hover { background: #e2e8f0; }
+
+    /* ===== 隐藏辅助 ===== */
+    .hidden { display: none !important; }
+
+    /* ===== 响应式 ===== */
+    @media (max-width: 480px) {
+      .card { padding: 28px 18px; }
+    }
+  </style>
 </head>
 <body>
-    <h2>登录测试</h2>
-    <div id="loginPanel">
-        <input type="email" id="email" placeholder="邮箱">
-        <input type="password" id="password" placeholder="密码">
-        <button id="loginBtn">登录</button>
-        <p><a href="#" id="switchToRegister">还没有账号？去注册</a></p>
+
+<div class="card" id="app">
+  <h1>📖 DayLog</h1>
+  <p class="subtitle">登录以同步你的日志</p>
+
+  <!-- ========== 未登录状态 ========== -->
+  <div id="authForms">
+    <!-- Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="login">登录</button>
+      <button class="tab-btn" data-tab="register">注册</button>
     </div>
-    <div id="registerPanel" class="hidden">
-        <input type="email" id="regEmail" placeholder="邮箱">
-        <input type="text" id="regCode" placeholder="验证码">
-        <button id="sendCodeBtn">获取验证码</button>
-        <input type="password" id="regPassword" placeholder="密码（不少于6位）">
-        <button id="registerBtn">注册</button>
-        <p><a href="#" id="switchToLogin">已有账号？去登录</a></p>
+
+    <!-- 登录表单 -->
+    <div id="form-login">
+      <div class="form-group">
+        <label>邮箱地址</label>
+        <input type="email" id="login-email" placeholder="your@email.com" />
+      </div>
+      <div class="form-group">
+        <label>密码</label>
+        <input type="password" id="login-password" placeholder="输入密码" />
+      </div>
+      <button class="btn-primary" id="login-btn">登 录</button>
+      <div style="text-align:right; margin-top:10px;">
+        <button class="link-btn" id="forgot-pwd-btn">忘记密码？</button>
+      </div>
     </div>
-    <div class="message" id="msg"></div>
 
-    <script>
-        const API_URL = 'https://daylog-d3gkb5k6y8cbd1a32-1316024752.ap-shanghai.app.tcloudbase.com/auth'
+    <!-- 注册表单 -->
+    <div id="form-register" class="hidden">
+      <div class="form-group">
+        <label>邮箱地址</label>
+        <input type="email" id="reg-email" placeholder="your@email.com" />
+      </div>
+      <div class="form-group">
+        <label>密码（至少8位，含字母和数字）</label>
+        <input type="password" id="reg-password" placeholder="设置密码" />
+      </div>
+      <div class="form-group">
+        <label>验证码</label>
+        <div class="input-row">
+          <input type="text" id="reg-code" placeholder="6位验证码" />
+          <button id="send-code-btn">发送验证码</button>
+        </div>
+      </div>
+      <button class="btn-primary" id="register-btn">注 册</button>
+    </div>
 
-        const loginPanel = document.getElementById('loginPanel')
-        const registerPanel = document.getElementById('registerPanel')
-        const msg = document.getElementById('msg')
+    <!-- 消息提示 -->
+    <div id="message-box" class="message-box"></div>
+  </div>
 
-        function showMsg(text) { msg.textContent = text }
+  <!-- ========== 已登录状态 ========== -->
+  <div id="userPanel" class="user-panel">
+    <div class="user-info">
+      <div class="email" id="display-email">user@example.com</div>
+      <div class="status">
+        当前状态：
+        <span class="badge free" id="pro-badge">基础用户</span>
+      </div>
+    </div>
 
-        // 切换
-        document.getElementById('switchToRegister').addEventListener('click', (e) => {
-            e.preventDefault()
-            loginPanel.classList.add('hidden')
-            registerPanel.classList.remove('hidden')
-        })
-        document.getElementById('switchToLogin').addEventListener('click', (e) => {
-            e.preventDefault()
-            registerPanel.classList.add('hidden')
-            loginPanel.classList.remove('hidden')
-        })
+    <!-- Pro 激活 -->
+    <div class="activate-section">
+      <div style="font-weight:600; font-size:14px; color:#1a1a2e;">🚀 升级 Pro</div>
+      <div class="row">
+        <input type="text" id="pro-key-input" placeholder="输入激活码 (例如 PRO-XXXXX)" />
+        <button id="activate-pro-btn">激活</button>
+      </div>
+    </div>
 
-        // 登录
-        document.getElementById('loginBtn').addEventListener('click', async () => {
-            const email = document.getElementById('email').value.trim()
-            const password = document.getElementById('password').value.trim()
-            if (!email || !password) { showMsg('请填写完整'); return }
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'login', email, password })
-                })
-                const data = await res.json()
-                showMsg(JSON.stringify(data))
-            } catch (e) { showMsg('网络错误') }
-        })
+    <button class="logout-btn" id="logout-btn">退出登录</button>
+  </div>
+</div>
 
-        // 发送验证码
-        document.getElementById('sendCodeBtn').addEventListener('click', async () => {
-            const email = document.getElementById('regEmail').value.trim()
-            if (!email) { showMsg('请输入邮箱'); return }
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'sendCode', email, type: 'register' })
-                })
-                const data = await res.json()
-                showMsg(JSON.stringify(data))
-            } catch (e) { showMsg('网络错误') }
-        })
+<script>
+  // ================================================================
+  //  配 置 区 （ 请 修 改 为 你 的 环 境 ID ）
+  // ================================================================
+  const ENV_ID = 'daylog-d3gkb5k6y8cbd1a32'; // ⚠️ 替换为你的云开发环境 ID
 
-        // 注册
-        document.getElementById('registerBtn').addEventListener('click', async () => {
-            const email = document.getElementById('regEmail').value.trim()
-            const code = document.getElementById('regCode').value.trim()
-            const password = document.getElementById('regPassword').value.trim()
-            if (!email || !code || !password) { showMsg('请填写完整'); return }
-            try {
-                const res = await fetch(API_URL, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ action: 'register', email, password, code })
-                })
-                const data = await res.json()
-                showMsg(JSON.stringify(data))
-            } catch (e) { showMsg('网络错误') }
-        })
-    </script>
+  // 云函数名称（你在控制台部署的函数名，例如 'auth' 或 'activateUser'）
+  const FUNC_NAME = 'auth';     // ⚠️ 替换为你的实际云函数名称
+
+  // ================================================================
+  //  初 始 化
+  // ================================================================
+  const app = cloudbase.init({ env: ENV_ID });
+  const auth = app.auth();
+  const db = app.database();
+
+  // DOM 引用
+  const $ = (s) => document.querySelector(s);
+  const $$ = (s) => document.querySelectorAll(s);
+
+  const authForms = $('#authForms');
+  const userPanel = $('#userPanel');
+  const msgBox = $('#message-box');
+
+  const loginForm = $('#form-login');
+  const registerForm = $('#form-register');
+  const tabBtns = $$('.tab-btn');
+
+  const loginEmail = $('#login-email');
+  const loginPwd = $('#login-password');
+  const regEmail = $('#reg-email');
+  const regPwd = $('#reg-password');
+  const regCode = $('#reg-code');
+
+  const displayEmail = $('#display-email');
+  const proBadge = $('#pro-badge');
+  const proKeyInput = $('#pro-key-input');
+
+  // 全局存储 verification_id（发送验证码后返回）
+  let currentVerificationId = null;
+  // 倒计时定时器
+  let countdownTimer = null;
+
+  // ================================================================
+  //  工 具 函 数
+  // ================================================================
+  function showMessage(text, type = 'success') {
+    msgBox.textContent = text;
+    msgBox.className = 'message-box ' + type;
+    // 3.5秒后自动淡出
+    clearTimeout(msgBox._timer);
+    msgBox._timer = setTimeout(() => {
+      msgBox.className = 'message-box';
+    }, 3500);
+  }
+
+  function setLoading(btn, loading) {
+    btn.disabled = loading;
+    btn.textContent = loading ? '处理中...' : btn.dataset.originalText || btn.textContent;
+    if (!btn.dataset.originalText) btn.dataset.originalText = btn.textContent;
+  }
+
+  // 切换 Tab
+  function switchTab(tab) {
+    tabBtns.forEach(btn => btn.classList.toggle('active', btn.dataset.tab === tab));
+    loginForm.classList.toggle('hidden', tab !== 'login');
+    registerForm.classList.toggle('hidden', tab !== 'register');
+    msgBox.className = 'message-box';
+  }
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+  });
+
+  // ================================================================
+  //  1. 发 送 验 证 码 （注 册 用）
+  // ================================================================
+  const sendCodeBtn = $('#send-code-btn');
+  sendCodeBtn.addEventListener('click', async () => {
+    const email = regEmail.value.trim();
+    if (!email || !email.includes('@')) {
+      return showMessage('请输入有效的邮箱地址', 'error');
+    }
+
+    // 简单防抖
+    if (sendCodeBtn.disabled) return;
+    setLoading(sendCodeBtn, true);
+
+    try {
+      const res = await auth.getVerification({ email });
+      currentVerificationId = res.verification_id;
+      showMessage('验证码已发送至邮箱，请查收', 'success');
+
+      // 倒计时 60s
+      let seconds = 60;
+      sendCodeBtn.textContent = `${seconds}s 后重发`;
+      sendCodeBtn.disabled = true;
+      clearInterval(countdownTimer);
+      countdownTimer = setInterval(() => {
+        seconds -= 1;
+        if (seconds <= 0) {
+          clearInterval(countdownTimer);
+          sendCodeBtn.textContent = '重新发送';
+          sendCodeBtn.disabled = false;
+        } else {
+          sendCodeBtn.textContent = `${seconds}s 后重发`;
+        }
+      }, 1000);
+    } catch (e) {
+      showMessage('发送失败：' + (e.message || '未知错误'), 'error');
+      sendCodeBtn.disabled = false;
+      sendCodeBtn.textContent = '发送验证码';
+    } finally {
+      setLoading(sendCodeBtn, false);
+    }
+  });
+
+  // ================================================================
+  //  2. 注 册
+  // ================================================================
+  const registerBtn = $('#register-btn');
+  registerBtn.addEventListener('click', async () => {
+    const email = regEmail.value.trim();
+    const password = regPwd.value;
+    const code = regCode.value.trim();
+
+    if (!email || !email.includes('@')) return showMessage('请输入有效邮箱', 'error');
+    if (!password || password.length < 8) return showMessage('密码至少8位', 'error');
+    if (!code || code.length < 6) return showMessage('请输入6位验证码', 'error');
+    if (!currentVerificationId) return showMessage('请先获取验证码', 'error');
+
+    setLoading(registerBtn, true);
+    try {
+      // 调用 SDK 注册方法
+      await auth.signUp({
+        email: email,
+        password: password,
+        verification_code: code,
+        verification_token: currentVerificationId
+      });
+      // 注册成功后，onLoginStateChanged 会自动触发登录回调
+      showMessage('🎉 注册成功，已自动登录！', 'success');
+      // 清空验证码 ID
+      currentVerificationId = null;
+    } catch (e) {
+      showMessage('注册失败：' + (e.message || '未知错误'), 'error');
+    } finally {
+      setLoading(registerBtn, false);
+    }
+  });
+
+  // ================================================================
+  //  3. 登 录
+  // ================================================================
+  const loginBtn = $('#login-btn');
+  loginBtn.addEventListener('click', async () => {
+    const email = loginEmail.value.trim();
+    const password = loginPwd.value;
+
+    if (!email || !email.includes('@')) return showMessage('请输入有效邮箱', 'error');
+    if (!password) return showMessage('请输入密码', 'error');
+
+    setLoading(loginBtn, true);
+    try {
+      await auth.signInWithEmailAndPassword(email, password);
+      showMessage('登录成功', 'success');
+    } catch (e) {
+      showMessage('登录失败：' + (e.message || '邮箱或密码错误'), 'error');
+    } finally {
+      setLoading(loginBtn, false);
+    }
+  });
+
+  // ================================================================
+  //  4. 忘 记 密 码 （重 置 密 码）
+  // ================================================================
+  const forgotBtn = $('#forgot-pwd-btn');
+  forgotBtn.addEventListener('click', async () => {
+    const email = loginEmail.value.trim();
+    if (!email || !email.includes('@')) {
+      return showMessage('请先在登录框中输入你的邮箱', 'error');
+    }
+
+    try {
+      await auth.sendPasswordResetEmail(email);
+      showMessage(`✅ 密码重置链接已发送至 ${email}，请查收邮件`, 'success');
+    } catch (e) {
+      showMessage('发送重置邮件失败：' + (e.message || '未知错误'), 'error');
+    }
+  });
+
+  // ================================================================
+  //  5. 查 询 Pro 状 态
+  // ================================================================
+  async function checkProStatus(userId) {
+    try {
+      const res = await db.collection('users').where({ userId }).get();
+      if (res.data.length > 0 && res.data[0].isPro === true) {
+        proBadge.textContent = 'Pro用户（永久有效）';
+        proBadge.className = 'badge pro';
+      } else {
+        proBadge.textContent = '基础用户';
+        proBadge.className = 'badge free';
+      }
+    } catch (e) {
+      console.warn('查询Pro状态失败:', e);
+      // 不中断界面
+    }
+  }
+
+  // ================================================================
+  //  6. 激 活 Pro （调 用 云 函 数）
+  // ================================================================
+  const activateBtn = $('#activate-pro-btn');
+  activateBtn.addEventListener('click', async () => {
+    const proCode = proKeyInput.value.trim();
+    if (!proCode) return showMessage('请输入激活码', 'error');
+
+    const user = auth.currentUser;
+    if (!user) return showMessage('请先登录', 'error');
+
+    setLoading(activateBtn, true);
+    try {
+      const result = await app.callFunction({
+        name: FUNC_NAME,
+        data: {
+          action: 'activatePro',
+          userId: user.uid,
+          proCode: proCode
+        }
+      });
+
+      const res = result.result;
+      if (res.code === 0) {
+        showMessage('🎉 ' + res.message, 'success');
+        // 刷新 Pro 状态
+        await checkProStatus(user.uid);
+        proKeyInput.value = ''; // 清空输入
+      } else {
+        showMessage(res.message || '激活失败', 'error');
+      }
+    } catch (e) {
+      showMessage('请求失败：' + (e.message || '未知错误'), 'error');
+    } finally {
+      setLoading(activateBtn, false);
+    }
+  });
+
+  // ================================================================
+  //  7. 退 出 登 录
+  // ================================================================
+  const logoutBtn = $('#logout-btn');
+  logoutBtn.addEventListener('click', async () => {
+    await auth.signOut();
+    showMessage('已退出登录', 'success');
+  });
+
+  // ================================================================
+  //  8. 登 录 状 态 监 听 （核 心）
+  // ================================================================
+  auth.onLoginStateChanged((user) => {
+    if (user) {
+      // ---- 已登录 ----
+      authForms.style.display = 'none';
+      userPanel.classList.add('active');
+      displayEmail.textContent = user.email || user.uid;
+
+      // 查询 Pro 状态
+      checkProStatus(user.uid);
+
+      // 如果当前在注册/登录界面有 loading，解除
+      [registerBtn, loginBtn].forEach(btn => setLoading(btn, false));
+    } else {
+      // ---- 未登录 ----
+      authForms.style.display = 'block';
+      userPanel.classList.remove('active');
+      // 默认显示登录 Tab
+      switchTab('login');
+      // 清空敏感输入
+      regCode.value = '';
+      proKeyInput.value = '';
+      // 重置发送按钮状态
+      if (sendCodeBtn.disabled) {
+        clearInterval(countdownTimer);
+        sendCodeBtn.disabled = false;
+        sendCodeBtn.textContent = '发送验证码';
+      }
+    }
+  });
+
+  // ================================================================
+  //  9. 初 始 化 检 查 （防 止 页 面 刷 新 闪 烁）
+  // ================================================================
+  // 如果用户已经登录，SDK 会立即触发 onLoginStateChanged
+  // 如果未登录，默认显示登录面板
+  console.log('✅ DayLog 认证页面已加载，等待登录状态...');
+
+  // 一个小技巧：按回车键触发登录或注册
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const activeTab = document.querySelector('.tab-btn.active');
+      if (activeTab && activeTab.dataset.tab === 'login') {
+        loginBtn.click();
+      } else if (activeTab && activeTab.dataset.tab === 'register') {
+        registerBtn.click();
+      }
+    }
+  });
+</script>
 </body>
 </html>
