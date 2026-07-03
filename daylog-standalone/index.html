@@ -1,0 +1,258 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DayLog 时光日志，用于记录事件、项目、投入时间、整体感受与想法。">
+  <title>DayLog · 时光日志</title>
+  <link rel="stylesheet" href="assets/css/index.css">
+</head>
+<body>
+  <main class="app">
+    <section class="topbar" id="topbar" aria-label="日期控制">
+      <div class="calendar-range-title" id="calendarRangeTitle" aria-label="日历筛选">
+        <button type="button" id="calendarAllBtn">全部</button>
+        <select id="calendarYearSelect" aria-label="选择年份"></select>
+        <select id="calendarMonthSelect" aria-label="选择月份"></select>
+      </div>
+      <div class="segmented" role="tablist" aria-label="快速切换日期">
+        <button type="button" id="todayBtn">今天</button>
+        <button type="button" id="tomorrowBtn">本周</button>
+      </div>
+
+      <div class="range-control">
+        <input type="date" id="rangeStart" aria-label="开始日期">
+        <span>至</span>
+        <input type="date" id="rangeEnd" aria-label="结束日期">
+        <button type="button" class="ghost range-helper" id="allTimeBtn">全部</button>
+      </div>
+
+      <div class="top-actions">
+        <button type="button" class="ghost" id="showAllBtn">日历</button>
+      </div>
+    </section>
+
+    <section class="greeting-strip" aria-label="DayLog 问候">
+      <div class="greeting-brand">
+        <strong>念起觉心，知深见己。</strong>
+        <span>由 刘迷糊 提供</span>
+      </div>
+      <div class="greeting-message" id="greetingMessage">慢慢写，认真看见自己。</div>
+    </section>
+
+    <section class="day-state-strip" id="dayStateStrip" aria-label="整体状态记录">
+      <div class="state-strip-title" id="stateStripTitle"></div>
+      <div class="mood-summary" id="moodSummary"></div>
+      <div class="thought-summary" id="thoughtSummary"></div>
+      <button class="ghost" type="button" id="openDayStateBtn">记录</button>
+    </section>
+
+    <section class="ddl-strip" aria-label="DDL 项目">
+      <div class="section-title">
+        <span>DDL 项目</span>
+        <span>
+          <button class="ghost" type="button" id="manageProjectsBtn">全部项目</button>
+          <span id="projectHint"></span>
+        </span>
+      </div>
+      <div class="project-rail-layout">
+        <div class="project-rail" id="projectRail"></div>
+        <button class="project-card add-card fixed-add-card" type="button" id="addProjectBtn">
+          <span>+ 添加项目</span>
+        </button>
+      </div>
+    </section>
+
+    <section class="main-content" id="dailyView">
+      <section class="status-panel" aria-label="复盘统计">
+        <button class="metric-button active" type="button" id="totalMetricBtn" data-rating-filter="all">
+          <span>记录数</span>
+          <strong id="totalCount">0</strong>
+        </button>
+        <button class="metric-button" type="button" id="fullMetricBtn" data-rating-filter="full">
+          <span>圆满完成</span>
+          <strong id="doneCount">0</strong>
+        </button>
+        <button class="metric-button" type="button" id="partialMetricBtn" data-rating-filter="partial">
+          <span>有所推进</span>
+          <strong id="doneRate">0</strong>
+        </button>
+        <button class="metric-button" type="button" id="baselineMetricBtn" data-rating-filter="baseline">
+          <span>保底完成</span>
+          <strong id="pendingCount">0</strong>
+        </button>
+        <button class="metric-button" type="button" id="unplannedMetricBtn" data-rating-filter="unplanned">
+          <span>计划外</span>
+          <strong id="unplannedCount">0</strong>
+        </button>
+        <button class="metric-button" type="button" id="focusTimeBtn">
+          <span>累计时间</span>
+          <strong id="focusTime">0m</strong>
+        </button>
+      </section>
+
+      <section class="todo-panel" aria-label="事件清单">
+        <div class="todo-tools">
+          <button class="ghost" type="button" id="resetSortBtn">默认排序</button>
+        </div>
+        <table id="taskTable">
+          <thead id="taskHead"></thead>
+          <tbody id="taskBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty" hidden>当前范围还没有复盘记录。</div>
+      </section>
+
+      <p class="hidden-note" id="hiddenNote"></p>
+    </section>
+
+    <section class="calendar-panel is-hidden" id="calendarView" aria-label="日历视图">
+      <div class="section-title">
+        <span id="calendarTitle">日历视图</span>
+        <span>按日期查看主要项目</span>
+      </div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+    </section>
+  </main>
+
+  <div class="hover-tooltip" id="hoverTooltip" hidden></div>
+
+  <dialog id="projectDialog">
+    <form class="dialog-body" id="projectForm" method="dialog">
+      <h2 id="projectDialogTitle">添加项目</h2>
+      <div class="dialog-grid">
+        <input id="projectName" type="text" placeholder="项目名称">
+        <div class="field">
+          <label for="projectDdl">项目 DDL</label>
+          <input type="date" id="projectDdl">
+        </div>
+      </div>
+      <div class="dialog-actions">
+        <button class="ghost" type="button" id="projectCancelBtn">取消</button>
+        <button class="primary" type="submit">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="taskDialog">
+    <form class="dialog-body" id="taskForm" method="dialog">
+      <h2 id="taskDialogTitle">记录事件</h2>
+      <div class="dialog-grid">
+        <div class="field">
+          <label for="taskStartTime">时间</label>
+          <select id="taskStartTime">
+            <option value="morning">上午</option>
+            <option value="afternoon">下午</option>
+            <option value="evening">晚上</option>
+          </select>
+        </div>
+        <textarea id="taskText" rows="2" placeholder="事件名称"></textarea>
+        <div class="field">
+          <label for="taskProject">归属项目</label>
+          <select id="taskProject"></select>
+        </div>
+        <div class="field">
+          <label for="taskDate">日期</label>
+          <input id="taskDate" type="date">
+        </div>
+        <div class="field">
+          <label for="taskMinutes">投入时间</label>
+          <div class="minute-with-unit">
+            <input id="taskMinutes" type="number" min="0" step="1" placeholder="输入">
+            <span class="minute-unit">分钟</span>
+          </div>
+        </div>
+        <fieldset class="rating-options compact-rating">
+          <legend>完成情况</legend>
+          <label><input type="radio" name="taskRating" value="baseline">🤲 保底完成</label>
+          <label><input type="radio" name="taskRating" value="partial">👏 有所推进</label>
+          <label><input type="radio" name="taskRating" value="full" checked>🎉 圆满完成</label>
+          <label><input type="radio" name="taskRating" value="unplanned">✨ 计划外</label>
+        </fieldset>
+        <input id="taskNote" type="text" placeholder="备注，可选">
+      </div>
+      <div class="dialog-actions">
+        <button class="primary" type="submit">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="projectListDialog">
+    <div class="dialog-body">
+      <h2>全部项目</h2>
+      <div class="project-list" id="projectListBody"></div>
+      <section class="merge-panel" id="projectMergePanel" hidden>
+        <div class="merge-panel-head">
+          <span>把多个项目合并到一个目标项目，相关事件会一起迁移。</span>
+          <span>支持撤销最近一次合并。</span>
+        </div>
+        <div class="merge-grid">
+          <div class="field">
+            <label for="mergeSourceProjects">要合并的项目</label>
+            <select id="mergeSourceProjects" multiple></select>
+          </div>
+          <div class="field">
+            <label for="mergeTargetProject">合并到</label>
+            <select id="mergeTargetProject"></select>
+          </div>
+        </div>
+        <div class="merge-actions">
+          <button class="ghost" type="button" id="mergeUndoBtn">撤销上次合并</button>
+          <button class="primary" type="button" id="mergeConfirmBtn">确认合并</button>
+        </div>
+      </section>
+      <div class="dialog-actions">
+        <button class="primary" type="button" id="projectListAddBtn">合并项目</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="dayStateDialog">
+    <form class="dialog-body" id="dayStateForm" method="dialog">
+      <h2 id="dayStateTitle">记录整体状态</h2>
+      <fieldset class="mood-picker" id="moodPicker"></fieldset>
+      <div class="field">
+        <label for="thoughtText">想法</label>
+        <textarea id="thoughtText" placeholder="写点今天想留下的话，可以用 emoji"></textarea>
+      </div>
+      <div class="thought-list" id="thoughtList"></div>
+      <div class="dialog-actions">
+        <button class="primary" type="submit">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="noteDetailDialog">
+    <div class="dialog-body">
+      <h2 id="noteDetailTitle">状态记录</h2>
+      <div class="note-detail-body" id="noteDetailBody"></div>
+
+    </div>
+  </dialog>
+
+  <dialog id="thoughtPreviewDialog">
+    <div class="dialog-body">
+      <h2 id="thoughtPreviewTitle">完整想法</h2>
+      <div class="thought-preview-meta" id="thoughtPreviewMeta"></div>
+      <div class="thought-preview-content" id="thoughtPreviewContent"></div>
+
+    </div>
+  </dialog>
+
+  <dialog id="timePieDialog">
+    <div class="dialog-body">
+      <h2 id="timePieTitle">时间分布</h2>
+      <div class="pie-layout">
+        <div class="pie-wrap">
+          <div class="pie-chart" id="pieChart"></div>
+          <div class="pie-center"><span>总计</span><strong id="pieTotal">0分钟</strong></div>
+        </div>
+        <div class="pie-legend" id="pieLegend"></div>
+      </div>
+      <div class="dialog-actions" hidden>
+        <button class="primary" type="button" id="timePieCloseBtn">关闭</button>
+      </div>
+    </div>
+  </dialog>
+  <script src="assets/js/index.js" defer></script>
+</body>
+</html>

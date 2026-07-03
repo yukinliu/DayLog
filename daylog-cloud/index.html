@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DayLog · 时光日志</title>
+  <link rel="stylesheet" href="assets/css/test.css">
+  <link rel="stylesheet" href="assets/css/account.css">
+
+</head>
+
+<body>
+
+  <!-- ============================================================
+     登录遮罩
+     ============================================================ -->
+  <div class="auth-gate" id="authGate">
+    <section class="auth-card" aria-label="登录 DayLog">
+      <div class="auth-card-head">
+        <h1>登录</h1>
+        <p>使用邮箱验证码登录，新用户自动注册。</p>
+      </div>
+      <div class="auth-form">
+        <label for="authEmailInput">邮箱地址</label>
+        <input id="authEmailInput" type="email" autocomplete="email" placeholder="请输入邮箱地址" value="">
+        <div class="auth-code-field" id="authCodeField">
+          <label for="authCodeInput">验证码</label>
+          <div class="auth-code-row">
+            <input id="authCodeInput" type="text" inputmode="numeric" maxlength="6" autocomplete="one-time-code"
+              placeholder="6位验证码">
+            <button class="ghost" type="button" id="sendAuthCodeBtn">发送验证码</button>
+          </div>
+        </div>
+        <label for="authPhoneInput" id="authPhoneLabel">手机号（选填）</label>
+        <input id="authPhoneInput" type="tel" inputmode="numeric" maxlength="11" autocomplete="tel"
+          placeholder="用于找回账号，选填" value="">
+        <button class="primary" type="button" id="loginAuthBtn">登录 / 注册</button>
+        <div class="sync-message" id="authMessage" role="status">首次使用将自动注册账号</div>
+        <label class="privacy-consent">
+          <input type="checkbox" id="privacyAgreeInput">
+          <span>登录注册代表同意 <button type="button" id="privacyPolicyBtn">隐私政策</button></span>
+        </label>
+      </div>
+    </section>
+  </div>
+
+  <!-- ============================================================
+     DayLog 主界面
+     ============================================================ -->
+  <main class="app" id="mainApp" style="display:none;">
+
+    <section class="topbar" id="topbar">
+      <div class="calendar-range-title" id="calendarRangeTitle" aria-label="日历筛选">
+        <button type="button" id="calendarAllBtn">全部</button>
+        <select id="calendarYearSelect" aria-label="选择年份"></select>
+        <select id="calendarMonthSelect" aria-label="选择月份"></select>
+      </div>
+      <div class="segmented" role="tablist" aria-label="快速切换日期">
+        <button type="button" id="todayRangeBtn">今天</button>
+        <button type="button" id="weekRangeBtn">本周</button>
+      </div>
+      <div class="range-control">
+        <input type="date" id="rangeStart" aria-label="开始日期">
+        <span>至</span>
+        <input type="date" id="rangeEnd" aria-label="结束日期">
+        <button class="ghost range-helper" id="allTimeBtn">全部</button>
+      </div>
+      <div class="top-actions">
+        <button class="ghost" id="showAllBtn">📅 日历</button>
+        <button class="account-btn" id="accountCenterBtn">👤 个人中心</button>
+      </div>
+    </section>
+
+    <section class="experience-zone" aria-label="体验区">
+      <div class="experience-head">
+        <div class="greeting-brand">
+          <strong>念起觉心，知深见己。</strong>
+          <span>由 刘迷糊 提供</span>
+        </div>
+        <div class="stats-banner" id="statsBanner" aria-label="内容汇总">
+          <span class="stat-item">💭 自我觉察 <strong id="statDayStates">0</strong> 条</span>
+          <span class="stat-item">📋 记录事件 <strong id="statTasks">0</strong> 条</span>
+          <span class="stat-item">📁 管理项目 <strong id="statProjects">0</strong> 个</span>
+          <span class="stat-item">📅 持续使用 <strong id="statDays">0天</strong></span>
+        </div>
+      </div>
+      <div class="greeting-message" id="greetingMessage" data-tooltip="慢慢写，认真看见自己。">慢慢写，认真看见自己。</div>
+      <section class="day-state-strip" id="dayStateStrip" aria-label="自我觉察记录">
+        <div class="mood-summary" id="moodSummary"></div>
+        <div class="thought-summary" id="thoughtSummary"></div>
+        <button class="ghost" type="button" id="openDayStateBtn">记录自我觉察</button>
+      </section>
+    </section>
+
+    <section class="ddl-strip sustainable-strip">
+      <div class="stage-review-panel" id="stageReviewPanel">
+        <div class="stage-review-copy">
+          <span class="stage-review-kicker" id="stageReviewKicker">阶段复盘</span>
+          <strong id="stageReviewSummary">记录了 0 天，0 条想法，共 0 条事件，累计投入 0分钟</strong>
+          <small id="stageReviewHint"></small>
+        </div>
+        <button class="ghost" type="button" id="openStageReviewBtn">阶段复盘详情</button>
+      </div>
+      <div class="project-section-head">
+        <div class="subsection-label">项目管理</div>
+        <span id="projectHint"></span>
+      </div>
+      <div class="project-rail-layout">
+        <div class="project-rail" id="projectRail"></div>
+        <div class="project-actions" id="projectActions" aria-label="项目操作">
+          <button class="ghost project-action-button" id="manageProjectsBtn">管理</button>
+          <button class="ghost project-action-button" id="addProjectBtn">新增</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="main-content" id="dailyView">
+      <section class="status-panel">
+        <button class="metric-button active" data-rating="all"><span>记录数</span><strong
+            id="totalCount">0</strong></button>
+        <button class="metric-button" data-rating="full"><span>圆满完成</span><strong id="doneCount">0</strong></button>
+        <button class="metric-button" data-rating="partial"><span>有所推进</span><strong id="doneRate">0</strong></button>
+        <button class="metric-button" data-rating="baseline"><span>保底完成</span><strong
+            id="pendingCount">0</strong></button>
+        <button class="metric-button" data-rating="unplanned"><span>计划外</span><strong
+            id="unplannedCount">0</strong></button>
+        <button class="metric-button" id="focusTimeBtn"><span>累计时间</span><strong id="focusTime">0m</strong></button>
+      </section>
+
+      <section class="todo-panel">
+        <div class="todo-tools">
+          <button class="ghost" id="resetSortBtn">默认排序</button>
+        </div>
+        <table id="taskTable">
+          <thead id="taskHead"></thead>
+          <tbody id="taskBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty">当前还没有复盘记录。</div>
+      </section>
+    </section>
+
+    <section class="calendar-panel is-hidden" id="calendarView">
+      <div class="section-title"><span>📅 日历视图</span></div>
+      <div class="calendar-grid" id="calendarGrid"></div>
+    </section>
+  </main>
+
+  <!-- ============================================================
+     个人中心抽屉（始终显示数据管理）
+     ============================================================ -->
+  <div class="drawer-backdrop hidden" id="accountBackdrop"></div>
+  <aside class="account-drawer" id="accountDrawer" aria-hidden="true">
+    <div class="drawer-head">
+      <h2>个人中心</h2>
+      <button class="drawer-close" id="drawerCloseBtn">✕</button>
+    </div>
+
+    <section class="drawer-section account-section">
+      <div class="nickname-display" id="nicknameDisplay">
+        <span id="nicknameText">给自己起个昵称吧</span>
+        <span class="edit-hint" id="nicknameEditHint">✎</span>
+      </div>
+      <div class="account-login-time">登录 <span id="displayLoginAt">-</span></div>
+      <div class="account-info-group">
+        <div class="info-row">
+          <span class="label">邮箱</span>
+          <span class="value account-email" id="displayEmail">-</span>
+          <span class="account-status-badge badge-basic" id="proBadge">基础版</span>
+        </div>
+        <div class="info-row">
+          <span class="label">账号 ID</span>
+          <span class="value account-id" id="displayUid">-</span>
+          <button class="icon-copy-btn" type="button" id="copyUidBtn" aria-label="复制账号 ID">⧉</button>
+        </div>
+        <div class="info-row">
+          <span class="label">手机号</span>
+          <span class="value" id="phoneDisplay">
+            <span id="phoneText">用于找回账号</span>
+            <span class="view-hint" id="phoneRevealHint">👁</span>
+            <span class="edit-hint" id="phoneEditHint">✎</span>
+          </span>
+        </div>
+      </div>
+      <div class="account-hint" id="accountHint">自动云同步</div>
+    </section>
+
+    <section class="drawer-section benefit-section">
+      <h3>时光日志DayLog功能</h3>
+      <div id="proPanel">
+        <!-- JS 动态渲染 -->
+      </div>
+      <div class="sync-message" id="proMessage"></div>
+    </section>
+
+    <section class="drawer-section" id="dataManagementSection" hidden>
+      <h3>📦 数据管理</h3>
+      <div class="data-actions">
+        <button class="sync-action" id="syncUploadBtn">
+          <span class="action-label">☁️ 上传云端备份</span>
+          <span class="action-hint" id="uploadHint">上传当前数据到云端备份</span>
+          <span class="action-time" id="uploadTime"></span>
+        </button>
+        <button class="sync-action" id="syncDownloadBtn">
+          <span class="action-label">☁️ 下载云端数据至本机</span>
+          <span class="action-hint" id="downloadHint">下载后本机数据将被覆盖</span>
+          <span class="action-time" id="downloadTime"></span>
+        </button>
+        <button class="sync-action" id="exportMarkdownBtn" style="grid-column: 1 / -1;">
+          <span class="action-label">📄 导出 Markdown 复盘日志</span>
+          <span class="action-hint" id="exportHint">导出全部数据</span>
+        </button>
+      </div>
+      <div class="sync-message" id="syncMessage"></div>
+    </section>
+
+    <!-- 区④ 联系开发者 -->
+    <section class="drawer-section contact-section">
+      <div class="contact-row">
+        <span class="version">时光日志DayLog v1.0</span>
+        <button class="copy-wechat" id="copyWechatBtn">📱 联系开发者</button>
+      </div>
+    </section>
+
+    <!-- 退出登录 -->
+    <div class="drawer-footer">
+      <span class="version"></span>
+      <button class="logout-btn" id="logoutBtn">退出登录</button>
+    </div>
+  </aside>
+
+  <!-- ============================================================
+     弹窗
+     ============================================================ -->
+  <dialog id="projectDialog">
+    <form class="dialog-body" id="projectForm">
+      <h2>添加项目</h2>
+      <input id="projectName" type="text" placeholder="项目名称">
+      <input id="projectDdl" type="date" placeholder="DDL（可选）">
+      <div class="dialog-actions">
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="taskDialog">
+    <form class="dialog-body" id="taskForm">
+      <h2>记录事件</h2>
+      <select id="taskStartTime">
+        <option value="morning">上午</option>
+        <option value="afternoon">下午</option>
+        <option value="evening">晚上</option>
+      </select>
+      <textarea id="taskText" rows="2" placeholder="事件名称"></textarea>
+      <select id="taskProject">
+        <option value="">待整理</option>
+      </select>
+      <input id="taskDate" type="date">
+      <input id="taskMinutes" type="number" min="0" placeholder="投入分钟">
+      <fieldset class="rating-options compact-rating">
+        <legend>完成情况</legend>
+        <label><input type="radio" name="taskRating" value="baseline">🤲 保底完成</label>
+        <label><input type="radio" name="taskRating" value="partial">👏 有所推进</label>
+        <label><input type="radio" name="taskRating" value="full" checked>🎉 圆满完成</label>
+        <label><input type="radio" name="taskRating" value="unplanned">✨ 计划外</label>
+      </fieldset>
+      <input id="taskNote" type="text" placeholder="备注（可选）">
+      <div class="dialog-actions">
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="dayStateDialog">
+    <form class="dialog-body" id="dayStateForm">
+      <h2 id="dayStateTitle">记录自我觉察</h2>
+      <fieldset class="mood-picker" id="moodPicker"></fieldset>
+      <label for="thoughtText">想法</label>
+      <textarea id="thoughtText" rows="4" placeholder="写点今天想留下的话，可以用 emoji"></textarea>
+      <div class="thought-list" id="thoughtList"></div>
+      <div class="dialog-actions">
+        <button type="submit" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="projectListDialog">
+    <div class="dialog-body">
+      <h2>全部项目</h2>
+      <div class="project-list" id="projectListBody"></div>
+      <section class="merge-panel" id="projectMergePanel" hidden>
+        <div class="merge-panel-head">
+          <span>把多个项目合并到一个目标项目，相关事件会一起迁移。</span>
+          <span>支持撤销最近一次合并。</span>
+        </div>
+        <div class="merge-grid">
+          <div class="field">
+            <label for="mergeSourceProjects">要合并的项目</label>
+            <select id="mergeSourceProjects" multiple></select>
+          </div>
+          <div class="field">
+            <label for="mergeTargetProject">合并到</label>
+            <select id="mergeTargetProject"></select>
+          </div>
+        </div>
+        <div class="merge-actions">
+          <button class="ghost" type="button" id="mergeUndoBtn">撤销上次合并</button>
+          <button class="primary" type="button" id="mergeConfirmBtn">确认合并</button>
+        </div>
+      </section>
+      <div class="dialog-actions">
+        <button class="primary" type="button" id="projectListAddBtn">合并项目</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="noteDetailDialog">
+    <div class="dialog-body">
+      <h2 id="noteDetailTitle">自我觉察</h2>
+      <div class="note-detail-body" id="noteDetailBody"></div>
+    </div>
+  </dialog>
+
+  <dialog id="privacyDialog">
+    <div class="dialog-body">
+      <h2>隐私政策</h2>
+      <div class="note-detail-body policy-content" id="privacyPolicyContent"></div>
+    </div>
+  </dialog>
+
+  <dialog id="timePieDialog">
+    <div class="dialog-body">
+      <h2 id="timePieTitle">时间分布</h2>
+      <div class="pie-layout">
+        <div class="pie-wrap">
+          <div class="pie-chart" id="pieChart"></div>
+          <div class="pie-center"><span>总计</span><strong id="pieTotal">0分钟</strong></div>
+        </div>
+        <div class="pie-legend" id="pieLegend"></div>
+      </div>
+    </div>
+  </dialog>
+
+  <script type="importmap">
+  {
+    "imports": {
+      "@cloudbase/js-sdk": "https://esm.sh/@cloudbase/js-sdk@3.6.2"
+    }
+  }
+</script>
+
+  <script type="module" src="assets/js/app.js"></script>
+
+</body>
+
+</html>
