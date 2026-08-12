@@ -54,7 +54,7 @@ const fallbackContent: ProductContent = {
   recommendation: {
     eyebrow: "分享见己",
     title: "分享给朋友，一起记录、探索与成长",
-    text: "最近在用见己安静地记录生活。它不催我打卡，也不评价效率，只帮我留下感受、想法和真实发生的事。如果你也想更清楚地看见自己，可以试试看。",
+    text: "最近在用见己安静地记录生活。留下自己的感受、想法和真实发生的事，在这个过程中更好地觉察和认识自己。如果你也想更清楚地看见自己，可以试试看。",
     copyButtonLabel: "复制推荐语"
   },
   links: {

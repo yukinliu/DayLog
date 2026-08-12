@@ -5947,6 +5947,26 @@ body {
   font-size: 10px;
 }
 
+.recommendation-guide-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--accent-strong);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.recommendation-guide-link:hover { text-decoration: underline; }
+
+.product-popover-shell:has(.settings-page) {
+  max-height: none;
+  overflow-y: visible;
+}
+
 /* Version information is passive; a Feishu link appears only when a newer version exists. */
 .version-status-row {
   display: grid;
