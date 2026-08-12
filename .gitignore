@@ -2,6 +2,7 @@
 *.app/
 outputs/
 scripts/
+!daylog-desktop/scripts/
 clean-icon.iconset/
 tmp-icon.iconset/
 daily-todo-icon.svg
