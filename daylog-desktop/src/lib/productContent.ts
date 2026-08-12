@@ -65,9 +65,14 @@ const fallbackContent: ProductContent = {
   release: { version: "0.1.0" }
 };
 
-const cacheKey = "daylog-remote-content";
-const lastFetchKey = "daylog-remote-content-last-fetch";
+const cacheKey = "daylog-remote-content-v2";
+const lastFetchKey = "daylog-remote-content-last-fetch-v2";
+const legacyCacheKeys = ["daylog-remote-content", "daylog-remote-content-last-fetch"];
 const refreshInterval = 24 * 60 * 60 * 1000;
+
+function removeLegacyContentCache() {
+  legacyCacheKeys.forEach((key) => window.localStorage.removeItem(key));
+}
 
 function mergeContent(base: ProductContent, next: Partial<ProductContent>): ProductContent {
   return {
@@ -105,6 +110,7 @@ function readCachedContent(base: ProductContent) {
 }
 
 async function loadContent(force = false): Promise<{ content: ProductContent; source: ContentSource; remoteFailed: boolean }> {
+  removeLegacyContentCache();
   const bundled = await loadBundledContent();
   const remoteUrl = bundled.remoteContentUrl.trim();
   if (!remoteUrl) return { content: bundled, source: "local", remoteFailed: false };
