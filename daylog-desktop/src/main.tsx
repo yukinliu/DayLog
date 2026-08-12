@@ -3,6 +3,8 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./styles/app.css";
 
+document.documentElement.dataset.platform = navigator.userAgent.includes("Windows") ? "windows" : "macos";
+
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
   <React.StrictMode>
     <App />

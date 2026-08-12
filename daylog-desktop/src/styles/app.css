@@ -5182,6 +5182,26 @@ body {
   font-size: 9.5px;
 }
 
+:root[data-platform="windows"] .app-frame {
+  padding-top: 0;
+  border-radius: 0;
+}
+
+:root[data-platform="windows"] .native-titlebar {
+  height: 0;
+  border: 0;
+  background: transparent;
+}
+
+:root[data-platform="windows"] .native-titlebar-brand {
+  display: none;
+}
+
+:root[data-platform="windows"] .native-titlebar .save-indicator {
+  top: 10px;
+  transform: none;
+}
+
 .workspace { grid-template-rows: minmax(0, 1fr) !important; }
 
 /* Settings actions use the same quiet paper controls as the rest of the product. */
