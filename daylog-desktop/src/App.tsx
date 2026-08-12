@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Shell, type ProductPanelKey } from "./components/Shell";
 import { CalendarPage } from "./pages/CalendarPage";
@@ -14,6 +15,7 @@ import { assignMissingProjectColors, defaultAppearance, nextProjectColorKey } fr
 import { clearRecordDrafts, hasUnsavedRecordDraft } from "./lib/recordDraft";
 import { useAppUpdate } from "./lib/appUpdate";
 import { useProductContent } from "./lib/productContent";
+import { startTelemetry, trackTelemetryEvent } from "./lib/telemetry";
 import type { AppSettings, CompletionValue, DayLogData, EventEntry, MoodValue, PageKey, Project, ThoughtEntry } from "./types/daylog";
 
 type SaveStatus = "idle" | "saving" | "saved" | "failed";
@@ -54,6 +56,10 @@ export default function App() {
   const [detailsDate, setDetailsDate] = useState(localDateKey());
   const saveRevision = useRef(0);
   const lastFailedSave = useRef<{ data: DayLogData; change: PersistChange } | null>(null);
+
+  useEffect(() => {
+    startTelemetry();
+  }, []);
 
   const acceptLoadedData = (loaded: { data: DayLogData }) => {
     const projects = assignMissingProjectColors(loaded.data.projects);
@@ -106,7 +112,7 @@ export default function App() {
         if (!window.confirm("最近一次保存失败，仍要退出并放弃未保存的更改吗？")) return;
       }
       if (hasUnsavedRecordDraft() && !window.confirm("记录页还有未保存的草稿，仍要退出吗？")) return;
-      await appWindow.destroy();
+      await invoke("close_main_window");
     }).then((stopListening) => {
       if (disposed) stopListening();
       else unlisten = stopListening;
@@ -256,7 +262,7 @@ export default function App() {
     if (!input.date) return false;
     const now = localIsoString();
     const thoughtContent = input.thought.trim();
-    return commitData((latest) => ({
+    const saved = await commitData((latest) => ({
       ...latest,
       moods: [
         ...latest.moods,
@@ -279,6 +285,8 @@ export default function App() {
           ]
         : latest.thoughts
     }), { dataKeys: thoughtContent ? ["moods", "thoughts"] : ["moods"], affectedDates: [input.date] });
+    if (saved) trackTelemetryEvent("first_reflection_saved");
+    return saved;
   };
 
   const saveEvent = async (input: {
@@ -292,7 +300,7 @@ export default function App() {
   }) => {
     const title = input.title.trim();
     if (!title || !input.date) return false;
-    return commitData((latest) => ({
+    const saved = await commitData((latest) => ({
       ...latest,
       events: [
         ...latest.events,
@@ -309,6 +317,8 @@ export default function App() {
         }
       ]
     }), { dataKeys: ["events"], affectedDates: [input.date] });
+    if (saved) trackTelemetryEvent("first_event_saved");
+    return saved;
   };
 
   const createProject = () => {
@@ -475,6 +485,8 @@ export default function App() {
                 onShowInFinder={() => showVaultInFinder(data.settings.vaultPath)}
                 updateState={appUpdate.state}
                 content={productContent}
+                onUpdateLinkOpen={() => trackTelemetryEvent("update_link_opened")}
+                onFeedbackLinkOpen={() => trackTelemetryEvent("feedback_link_opened")}
               />
             )
           : null}

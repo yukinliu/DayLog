@@ -14,9 +14,11 @@ interface SettingsPageProps {
   onShowInFinder: () => void;
   updateState: UpdateCheckState;
   content: ProductContent;
+  onUpdateLinkOpen: () => void;
+  onFeedbackLinkOpen: () => void;
 }
 
-export function SettingsPage({ settings, onUpdateSettings, onResetAppearance, onChangeVault, onShowInFinder, updateState, content }: SettingsPageProps) {
+export function SettingsPage({ settings, onUpdateSettings, onResetAppearance, onChangeVault, onShowInFinder, updateState, content, onUpdateLinkOpen, onFeedbackLinkOpen }: SettingsPageProps) {
   const vaultPath = settings.vaultPath;
   const vaultName = vaultPath.split(/[\\/]/).filter(Boolean).pop() ?? "见己";
   const [pathCopied, setPathCopied] = useState(false);
@@ -94,7 +96,7 @@ export function SettingsPage({ settings, onUpdateSettings, onResetAppearance, on
           {versionStatus ? <em>{versionStatus}</em> : null}
         </div>
         {updateState.status === "available" && (
-          <button className="available-download-row" type="button" onClick={() => openExternalUrl(downloadUrl)}>
+          <button className="available-download-row" type="button" onClick={() => { onUpdateLinkOpen(); void openExternalUrl(downloadUrl); }}>
             <span>
               <strong>前往飞书下载新版本</strong>
               {updateState.release.notes ? <small>{updateState.release.notes}</small> : null}
@@ -106,7 +108,7 @@ export function SettingsPage({ settings, onUpdateSettings, onResetAppearance, on
           <span>{content.links.productGuideLabel}</span>
           <ExternalLink size={16} />
         </button>
-        <button className="product-guide-row feedback-row" type="button" onClick={() => openExternalUrl(content.links.feedbackUrl)}>
+        <button className="product-guide-row feedback-row" type="button" onClick={() => { onFeedbackLinkOpen(); void openExternalUrl(content.links.feedbackUrl); }}>
           <span>
             <MessageCircle size={15} />
             <span>

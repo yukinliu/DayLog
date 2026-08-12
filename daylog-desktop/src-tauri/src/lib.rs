@@ -1,13 +1,29 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+use sha2::{Digest, Sha256};
 use std::{
     fs::{self, File},
     io::Write,
     path::{Component, Path, PathBuf},
     process::Command,
-    time::{SystemTime, UNIX_EPOCH},
+    sync::Mutex,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use tauri::{AppHandle, Manager};
+use uuid::Uuid;
+
+const TELEMETRY_APP_ID: &str = "D8E956A7-C9C0-48FA-BE64-13D8FB9C0ACD";
+const TELEMETRY_NAMESPACE: &str = "com.daylog";
+const TELEMETRY_QUEUE_LIMIT: usize = 20;
+static DEVICE_STATE_LOCK: Mutex<()> = Mutex::new(());
+
+fn telemetry_state_key() -> &'static str {
+    if cfg!(debug_assertions) {
+        "telemetryDebug"
+    } else {
+        "telemetry"
+    }
+}
 
 const DATA_FILES: [(&str, &str); 6] = [
     ("settings", "app-settings.json"),
@@ -32,6 +48,14 @@ struct PlannedFile {
     content: String,
 }
 
+#[derive(Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct PendingTelemetryEvent {
+    id: String,
+    event: String,
+    local_date: String,
+}
+
 fn timestamp_millis() -> u128 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -47,30 +71,239 @@ fn app_state_file(app: &AppHandle) -> Result<PathBuf, String> {
 }
 
 fn remember_vault(app: &AppHandle, path: &Path) -> Result<(), String> {
+    let _lock = DEVICE_STATE_LOCK
+        .lock()
+        .map_err(|_| "应用配置暂时不可用".to_string())?;
     let state_file = app_state_file(app)?;
     if let Some(parent) = state_file.parent() {
         fs::create_dir_all(parent).map_err(|error| format!("无法创建应用配置目录：{error}"))?;
     }
-    let content = serde_json::to_string_pretty(&json!({
-        "recentVaultPath": path.to_string_lossy()
-    }))
-    .map_err(|error| format!("无法生成应用配置：{error}"))?;
+    let mut state = read_device_state(&state_file)?;
+    state["recentVaultPath"] = json!(path.to_string_lossy());
+    let content = serde_json::to_string_pretty(&state)
+        .map_err(|error| format!("无法生成应用配置：{error}"))?;
     atomic_write(&state_file, &format!("{content}\n"))
 }
 
 fn read_recent_vault_path(app: &AppHandle) -> Result<Option<PathBuf>, String> {
+    let _lock = DEVICE_STATE_LOCK
+        .lock()
+        .map_err(|_| "应用配置暂时不可用".to_string())?;
     let state_file = app_state_file(app)?;
-    if !state_file.exists() {
-        return Ok(None);
-    }
-    let content = fs::read_to_string(&state_file)
-        .map_err(|error| format!("无法读取最近资料库配置：{error}"))?;
-    let value: Value = serde_json::from_str(&content)
-        .map_err(|error| format!("最近资料库配置格式错误：{error}"))?;
+    let value = read_device_state(&state_file)?;
     Ok(value
         .get("recentVaultPath")
         .and_then(Value::as_str)
         .map(PathBuf::from))
+}
+
+fn read_device_state(path: &Path) -> Result<Value, String> {
+    if !path.exists() {
+        return Ok(json!({}));
+    }
+    let content = fs::read_to_string(path).map_err(|error| format!("无法读取应用配置：{error}"))?;
+    serde_json::from_str(&content).map_err(|error| format!("应用配置格式错误：{error}"))
+}
+
+fn write_device_state(path: &Path, value: &Value) -> Result<(), String> {
+    let content = serde_json::to_string_pretty(value)
+        .map_err(|error| format!("无法生成应用配置：{error}"))?;
+    atomic_write(path, &format!("{content}\n"))
+}
+
+fn telemetry_event_type(event: &str) -> Option<&'static str> {
+    match event {
+        "activation" => Some("App.activated"),
+        "daily_open" => Some("App.openedDaily"),
+        "first_reflection_saved" => Some("Record.reflectionSavedFirst"),
+        "first_event_saved" => Some("Record.eventSavedFirst"),
+        "update_link_opened" => Some("Update.downloadLinkOpened"),
+        "feedback_link_opened" => Some("Feedback.linkOpened"),
+        _ => None,
+    }
+}
+
+fn telemetry_marker(event: &str) -> Option<&'static str> {
+    match event {
+        "activation" => Some("activationTracked"),
+        "first_reflection_saved" => Some("firstReflectionTracked"),
+        "first_event_saved" => Some("firstEventTracked"),
+        _ => None,
+    }
+}
+
+fn enqueue_telemetry_event(app: &AppHandle, event: &str, local_date: &str) -> Result<(), String> {
+    if telemetry_event_type(event).is_none() {
+        return Err("未知的统计事件".to_string());
+    }
+    let _lock = DEVICE_STATE_LOCK
+        .lock()
+        .map_err(|_| "应用配置暂时不可用".to_string())?;
+    let state_file = app_state_file(app)?;
+    let mut state = read_device_state(&state_file)?;
+    let state_key = telemetry_state_key();
+    let telemetry = state
+        .as_object_mut()
+        .ok_or_else(|| "应用配置格式错误".to_string())?
+        .entry(state_key)
+        .or_insert_with(|| json!({}));
+    let telemetry = telemetry
+        .as_object_mut()
+        .ok_or_else(|| "统计配置格式错误".to_string())?;
+
+    if let Some(marker) = telemetry_marker(event) {
+        if telemetry
+            .get(marker)
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        {
+            return Ok(());
+        }
+        telemetry.insert(marker.to_string(), json!(true));
+    }
+    if event == "daily_open" {
+        if telemetry.get("dailyOpenDate").and_then(Value::as_str) == Some(local_date) {
+            return Ok(());
+        }
+        telemetry.insert("dailyOpenDate".to_string(), json!(local_date));
+    }
+    if !telemetry.contains_key("clientUser") {
+        let digest = Sha256::digest(Uuid::new_v4().as_bytes());
+        telemetry.insert("clientUser".to_string(), json!(format!("{digest:x}")));
+    }
+    let pending = telemetry.entry("pending").or_insert_with(|| json!([]));
+    let pending = pending
+        .as_array_mut()
+        .ok_or_else(|| "统计队列格式错误".to_string())?;
+    pending.push(json!(PendingTelemetryEvent {
+        id: Uuid::new_v4().to_string(),
+        event: event.to_string(),
+        local_date: local_date.to_string(),
+    }));
+    if pending.len() > TELEMETRY_QUEUE_LIMIT {
+        pending.drain(0..pending.len() - TELEMETRY_QUEUE_LIMIT);
+    }
+    write_device_state(&state_file, &state)
+}
+
+fn pending_telemetry(app: &AppHandle) -> Result<(String, Vec<PendingTelemetryEvent>), String> {
+    let _lock = DEVICE_STATE_LOCK
+        .lock()
+        .map_err(|_| "应用配置暂时不可用".to_string())?;
+    let state = read_device_state(&app_state_file(app)?)?;
+    let telemetry = state
+        .get(telemetry_state_key())
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+    let client_user = telemetry
+        .get("clientUser")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
+    let pending = serde_json::from_value(
+        telemetry
+            .get("pending")
+            .cloned()
+            .unwrap_or_else(|| json!([])),
+    )
+    .map_err(|error| format!("无法读取统计队列：{error}"))?;
+    Ok((client_user, pending))
+}
+
+fn remove_pending_telemetry(app: &AppHandle, ids: &[String]) -> Result<(), String> {
+    if ids.is_empty() {
+        return Ok(());
+    }
+    let _lock = DEVICE_STATE_LOCK
+        .lock()
+        .map_err(|_| "应用配置暂时不可用".to_string())?;
+    let state_file = app_state_file(app)?;
+    let mut state = read_device_state(&state_file)?;
+    let pointer = format!("/{}/pending", telemetry_state_key());
+    if let Some(pending) = state.pointer_mut(&pointer).and_then(Value::as_array_mut) {
+        pending.retain(|item| {
+            !item
+                .get("id")
+                .and_then(Value::as_str)
+                .is_some_and(|id| ids.iter().any(|sent| sent == id))
+        });
+    }
+    write_device_state(&state_file, &state)
+}
+
+async fn flush_telemetry(app: &AppHandle) -> Result<(), String> {
+    let (client_user, pending) = pending_telemetry(app)?;
+    if client_user.is_empty() || pending.is_empty() {
+        return Ok(());
+    }
+    let app_version = app.package_info().version.to_string();
+    let platform = if cfg!(target_os = "macos") {
+        "macOS"
+    } else if cfg!(target_os = "windows") {
+        "Windows"
+    } else {
+        "Other"
+    };
+    let body: Vec<Value> = pending
+        .iter()
+        .filter_map(|item| {
+            telemetry_event_type(&item.event).map(|event_type| {
+                json!({
+                    "appID": TELEMETRY_APP_ID,
+                    "clientUser": client_user,
+                    "type": event_type,
+                    "isTestMode": cfg!(debug_assertions),
+                    "payload": {
+                        "appVersion": app_version,
+                        "platform": platform,
+                        "DayLog.eventDate": item.local_date
+                    }
+                })
+            })
+        })
+        .collect();
+    if body.is_empty() {
+        return Ok(());
+    }
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(3))
+        .build()
+        .map_err(|error| format!("无法初始化统计请求：{error}"))?;
+    let response = client
+        .post(format!(
+            "https://nom.telemetrydeck.com/v2/namespace/{TELEMETRY_NAMESPACE}/"
+        ))
+        .json(&body)
+        .send()
+        .await
+        .map_err(|error| format!("统计服务暂时不可用：{error}"))?;
+    if !response.status().is_success() {
+        return Err(format!("统计服务返回 {}", response.status()));
+    }
+    remove_pending_telemetry(
+        app,
+        &pending
+            .iter()
+            .map(|item| item.id.clone())
+            .collect::<Vec<_>>(),
+    )
+}
+
+#[tauri::command]
+async fn telemetry_startup(app: AppHandle, local_date: String) -> Result<(), String> {
+    enqueue_telemetry_event(&app, "activation", &local_date)?;
+    enqueue_telemetry_event(&app, "daily_open", &local_date)?;
+    flush_telemetry(&app).await
+}
+
+#[tauri::command]
+async fn track_telemetry_event(
+    app: AppHandle,
+    event: String,
+    local_date: String,
+) -> Result<(), String> {
+    enqueue_telemetry_event(&app, &event, &local_date)?;
+    flush_telemetry(&app).await
 }
 
 fn atomic_write(path: &Path, content: &str) -> Result<(), String> {
@@ -85,8 +318,8 @@ fn atomic_write(path: &Path, content: &str) -> Result<(), String> {
         .ok_or_else(|| "目标文件名无效".to_string())?;
     let temporary = parent.join(format!(".{file_name}.{}.tmp", timestamp_millis()));
     let result = (|| -> Result<(), String> {
-        let mut file = File::create(&temporary)
-            .map_err(|error| format!("无法创建临时文件：{error}"))?;
+        let mut file =
+            File::create(&temporary).map_err(|error| format!("无法创建临时文件：{error}"))?;
         file.write_all(content.as_bytes())
             .map_err(|error| format!("无法写入临时文件：{error}"))?;
         file.sync_all()
@@ -184,7 +417,8 @@ fn load_vault_from_path(path: &Path) -> Result<LoadedVault, String> {
             let settings = value
                 .as_object_mut()
                 .ok_or_else(|| "app-settings.json 必须是对象".to_string())?;
-            let needs_migration = !settings.contains_key("schemaVersion") || settings.contains_key("vaultPath");
+            let needs_migration =
+                !settings.contains_key("schemaVersion") || settings.contains_key("vaultPath");
             match settings.get("schemaVersion").and_then(Value::as_u64) {
                 Some(1) => {}
                 None => {
@@ -248,7 +482,12 @@ fn open_recent_vault(app: AppHandle) -> Result<Option<LoadedVault>, String> {
 }
 
 #[tauri::command]
-fn open_vault(app: AppHandle, path: String, create: bool, now_iso: String) -> Result<LoadedVault, String> {
+fn open_vault(
+    app: AppHandle,
+    path: String,
+    create: bool,
+    now_iso: String,
+) -> Result<LoadedVault, String> {
     let path = PathBuf::from(path);
     if create {
         ensure_empty_or_daylog_folder(&path)?;
@@ -275,7 +514,10 @@ fn save_vault(
     for planned in files {
         let relative = Path::new(&planned.relative_path);
         if !is_safe_relative_path(relative) {
-            return Err(format!("拒绝写入资料库之外的路径：{}", planned.relative_path));
+            return Err(format!(
+                "拒绝写入资料库之外的路径：{}",
+                planned.relative_path
+            ));
         }
         atomic_write(&vault.join(relative), &planned.content)?;
     }
@@ -313,6 +555,24 @@ fn open_external_url(url: String) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+fn close_main_window(app: AppHandle) -> Result<(), String> {
+    let window = app
+        .get_webview_window("main")
+        .ok_or_else(|| "无法找到主窗口".to_string())?;
+    #[cfg(target_os = "macos")]
+    {
+        window.hide().map_err(|error| format!("无法关闭窗口：{error}"))?;
+    }
+    #[cfg(not(target_os = "macos"))]
+    {
+        window
+            .destroy()
+            .map_err(|error| format!("无法退出应用：{error}"))?;
+    }
+    Ok(())
+}
+
 #[cfg(target_os = "macos")]
 fn open_with_system(target: &std::ffi::OsStr) -> std::io::Result<()> {
     Command::new("open").arg(target).spawn().map(|_| ())
@@ -337,18 +597,80 @@ pub fn run() {
             open_vault,
             save_vault,
             show_in_finder,
-            open_external_url
+            open_external_url,
+            close_main_window,
+            telemetry_startup,
+            track_telemetry_event
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running 见己");
+        .build(tauri::generate_context!())
+        .expect("error while building 见己")
+        .run(|app, event| {
+            #[cfg(target_os = "macos")]
+            if let tauri::RunEvent::Reopen { .. } = event {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+        });
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    #[test]
+    fn telemetry_events_are_explicitly_allowlisted() {
+        assert_eq!(telemetry_event_type("activation"), Some("App.activated"));
+        assert_eq!(
+            telemetry_event_type("first_event_saved"),
+            Some("Record.eventSavedFirst")
+        );
+        assert_eq!(telemetry_event_type("record_content"), None);
+        assert_eq!(telemetry_event_type("vault_path"), None);
+    }
+
+    #[test]
+    fn telemetry_payload_does_not_serialize_record_content() {
+        let item = PendingTelemetryEvent {
+            id: "event-id".to_string(),
+            event: "daily_open".to_string(),
+            local_date: "2026-08-12".to_string(),
+        };
+        let value = serde_json::to_value(item).unwrap();
+        assert_eq!(value["event"], "daily_open");
+        assert!(value.get("content").is_none());
+        assert!(value.get("vaultPath").is_none());
+    }
+
     fn test_vault_path(name: &str) -> PathBuf {
         std::env::temp_dir().join(format!("daylog-{name}-{}", timestamp_millis()))
+    }
+
+    #[test]
+    fn loads_optional_migrated_vaults() {
+        let Ok(root) = std::env::var("DAYLOG_MIGRATION_TEST_ROOT") else {
+            return;
+        };
+        let expected_count = std::env::var("DAYLOG_MIGRATION_EXPECTED_COUNT")
+            .ok()
+            .and_then(|value| value.parse::<usize>().ok())
+            .unwrap_or(7);
+        let root = PathBuf::from(root);
+        let mut loaded_count = 0;
+        for entry in fs::read_dir(&root).unwrap() {
+            let path = entry.unwrap().path();
+            if path.is_dir() && path.join(".daylog").is_dir() {
+                let loaded = load_vault_from_path(&path).unwrap();
+                assert_eq!(loaded.data["version"], 1);
+                assert!(loaded.data["projects"].is_array());
+                assert!(loaded.data["events"].is_array());
+                assert!(loaded.data["moods"].is_array());
+                assert!(loaded.data["thoughts"].is_array());
+                loaded_count += 1;
+            }
+        }
+        assert_eq!(loaded_count, expected_count);
     }
 
     #[test]
@@ -361,7 +683,10 @@ mod tests {
         assert_eq!(loaded.data["version"], 1);
         assert_eq!(loaded.data["events"], json!([]));
         assert_eq!(loaded.data["settings"]["schemaVersion"], 1);
-        assert_eq!(loaded.data["settings"]["vaultPath"], vault.to_string_lossy().to_string());
+        assert_eq!(
+            loaded.data["settings"]["vaultPath"],
+            vault.to_string_lossy().to_string()
+        );
 
         let stored_settings: Value = serde_json::from_str(
             &fs::read_to_string(vault.join(".daylog/app-settings.json")).unwrap(),
@@ -448,7 +773,10 @@ mod tests {
             vec![],
         )
         .unwrap();
-        assert_eq!(load_vault_from_path(&vault).unwrap().data["events"][0]["minutes"], 45);
+        assert_eq!(
+            load_vault_from_path(&vault).unwrap().data["events"][0]["minutes"],
+            45
+        );
 
         save_vault(
             vault.to_string_lossy().to_string(),
@@ -459,7 +787,10 @@ mod tests {
             vec!["days/2026/08/2026-08-10.md".to_string()],
         )
         .unwrap();
-        assert_eq!(load_vault_from_path(&vault).unwrap().data["events"], json!([]));
+        assert_eq!(
+            load_vault_from_path(&vault).unwrap().data["events"],
+            json!([])
+        );
         assert!(!vault.join("days/2026/08/2026-08-10.md").exists());
 
         fs::remove_dir_all(vault).unwrap();
@@ -494,7 +825,10 @@ mod tests {
 
         let loaded = load_vault_from_path(&vault).unwrap();
         assert_eq!(loaded.data["settings"]["schemaVersion"], 1);
-        assert_eq!(loaded.data["settings"]["vaultPath"], vault.to_string_lossy().to_string());
+        assert_eq!(
+            loaded.data["settings"]["vaultPath"],
+            vault.to_string_lossy().to_string()
+        );
 
         let migrated: Value = serde_json::from_str(
             &fs::read_to_string(vault.join(".daylog/app-settings.json")).unwrap(),

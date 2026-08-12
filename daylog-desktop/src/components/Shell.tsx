@@ -7,7 +7,8 @@ import {
   PenLine,
   Settings
 } from "lucide-react";
-import { useEffect, useRef, type ReactNode } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useEffect, useRef, type MouseEvent, type ReactNode } from "react";
 import type { Appearance, PageKey } from "../types/daylog";
 
 interface ShellProps {
@@ -56,6 +57,11 @@ export function Shell({
 }: ShellProps) {
   const productPanelRef = useRef<HTMLDivElement>(null);
 
+  const startWindowDrag = (event: MouseEvent<HTMLElement>) => {
+    if (event.button !== 0 || (event.target as Element).closest("button")) return;
+    void getCurrentWindow().startDragging();
+  };
+
   useEffect(() => {
     if (!activeProductPanel) return;
     const handlePointerDown = (event: PointerEvent) => {
@@ -77,7 +83,7 @@ export function Shell({
 
   return (
     <div className="app-frame" data-appearance={appearance}>
-      <header className="native-titlebar" data-tauri-drag-region>
+      <header className="native-titlebar" data-tauri-drag-region onMouseDown={startWindowDrag}>
         <div className="native-titlebar-brand" aria-label="刘迷糊 DayLog 见己" data-tauri-drag-region>
           <strong>刘迷糊 DayLog</strong>
           <span>· 见己</span>
