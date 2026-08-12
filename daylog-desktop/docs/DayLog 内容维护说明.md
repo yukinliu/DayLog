@@ -9,6 +9,8 @@
 - `recommendation`：DayLog 推荐语与复制按钮文案。
 - `greetings`：记录页顶部随机问候语。
 - `links.productGuideUrl`：DayLog 产品说明飞书链接。
+- `links.feedbackLabel`：设置页反馈入口名称。
+- `links.feedbackUrl`：用户提交反馈与建议的飞书链接。
 - `links.updateDownloadUrl`：用户下载最新版客户端的固定飞书页面。
 - `release`：最新公开版本号、发布日期与简短更新内容。
 

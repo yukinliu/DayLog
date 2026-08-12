@@ -1,4 +1,4 @@
-import { Check, Copy, ExternalLink, FolderOpen, Monitor, Palette, RefreshCw, RotateCcw } from "lucide-react";
+import { Check, Copy, ExternalLink, FolderOpen, MessageCircle, Monitor, Palette, RefreshCw, RotateCcw } from "lucide-react";
 import { useState } from "react";
 import type { UpdateCheckState } from "../lib/appUpdate";
 import { appearanceOptions } from "../lib/projectColor";
@@ -54,7 +54,7 @@ export function SettingsPage({ settings, onUpdateSettings, onResetAppearance, on
         </button>
         <div className="button-row">
           <button className="settings-action" type="button" onClick={onChangeVault}><RefreshCw size={14} />更换资料库</button>
-          <button className="settings-action" type="button" onClick={onShowInFinder}><FolderOpen size={14} />在 Finder 中打开</button>
+          <button className="settings-action" type="button" onClick={onShowInFinder}><FolderOpen size={14} />打开资料库文件夹</button>
         </div>
       </article>
       <article className="settings-card">
@@ -104,6 +104,16 @@ export function SettingsPage({ settings, onUpdateSettings, onResetAppearance, on
         )}
         <button className="product-guide-row" type="button" onClick={() => openExternalUrl(content.links.productGuideUrl)}>
           <span>{content.links.productGuideLabel}</span>
+          <ExternalLink size={16} />
+        </button>
+        <button className="product-guide-row feedback-row" type="button" onClick={() => openExternalUrl(content.links.feedbackUrl)}>
+          <span>
+            <MessageCircle size={15} />
+            <span>
+              <strong>{content.links.feedbackLabel}</strong>
+              <small>遇到问题，或有想告诉我们的想法</small>
+            </span>
+          </span>
           <ExternalLink size={16} />
         </button>
       </article>

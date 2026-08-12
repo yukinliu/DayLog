@@ -13,8 +13,6 @@
     "windows": [
       {
         "title": "刘迷糊 DayLog · 见己",
-        "titleBarStyle": "Overlay",
-        "hiddenTitle": true,
         "width": 1280,
         "height": 820,
         "minWidth": 1080,
@@ -25,7 +23,6 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["dmg"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

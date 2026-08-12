@@ -31,6 +31,9 @@ if (!/^https:\/\//.test(content.links?.updateDownloadUrl ?? "")) {
 if (!/^https:\/\//.test(content.links?.productGuideUrl ?? "")) {
   errors.push("产品说明不是有效的 HTTPS 地址");
 }
+if (!/^https:\/\//.test(content.links?.feedbackUrl ?? "")) {
+  errors.push("反馈与建议不是有效的 HTTPS 地址");
+}
 if (!Array.isArray(activities) || activities.length !== 100) {
   errors.push(`充能小事应为 100 件，当前为 ${Array.isArray(activities) ? activities.length : "无效格式"}`);
 } else {

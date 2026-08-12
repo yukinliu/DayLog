@@ -5239,6 +5239,37 @@ body {
   justify-content: space-between;
 }
 
+.product-popover-shell .feedback-row > span {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+}
+
+.product-popover-shell .feedback-row {
+  min-height: 50px;
+  padding-block: 7px;
+}
+
+.product-popover-shell .feedback-row > span > span {
+  display: grid;
+  gap: 2px;
+}
+
+.product-popover-shell .feedback-row strong {
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 650;
+}
+
+.product-popover-shell .feedback-row small {
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
 /* Discovery keeps quick replenishment, the wider self-awareness ecosystem and sharing in one calm drawer. */
 .product-popover-shell:has(.discover-page) {
   width: min(430px, calc(100vw - 118px));

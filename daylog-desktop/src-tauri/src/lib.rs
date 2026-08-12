@@ -299,10 +299,7 @@ fn show_in_finder(path: String) -> Result<(), String> {
     if !path.exists() {
         return Err("资料库文件夹不存在".to_string());
     }
-    Command::new("open")
-        .arg(path)
-        .spawn()
-        .map_err(|error| format!("无法在 Finder 中打开资料库：{error}"))?;
+    open_with_system(path.as_os_str()).map_err(|error| format!("无法打开资料库文件夹：{error}"))?;
     Ok(())
 }
 
@@ -311,11 +308,24 @@ fn open_external_url(url: String) -> Result<(), String> {
     if !(url.starts_with("https://") || url.starts_with("http://")) {
         return Err("只允许打开 http 或 https 链接".to_string());
     }
-    Command::new("open")
-        .arg(url)
-        .spawn()
+    open_with_system(std::ffi::OsStr::new(&url))
         .map_err(|error| format!("无法打开外部链接：{error}"))?;
     Ok(())
+}
+
+#[cfg(target_os = "macos")]
+fn open_with_system(target: &std::ffi::OsStr) -> std::io::Result<()> {
+    Command::new("open").arg(target).spawn().map(|_| ())
+}
+
+#[cfg(target_os = "windows")]
+fn open_with_system(target: &std::ffi::OsStr) -> std::io::Result<()> {
+    Command::new("explorer.exe").arg(target).spawn().map(|_| ())
+}
+
+#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
+fn open_with_system(target: &std::ffi::OsStr) -> std::io::Result<()> {
+    Command::new("xdg-open").arg(target).spawn().map(|_| ())
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
