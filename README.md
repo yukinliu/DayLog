@@ -1,83 +1,85 @@
-# DayLog时光日志
+# 刘迷糊 DayLog · 见己
 
-一个本地优先的时光日志工具，用来记录已经完成的事件、投入时间、完成情况、项目归属、整体感受和想法。数据默认保存在用户自己的浏览器里，因此不同用户、不同浏览器之间的数据彼此独立。
+见己是一款本地优先的个人时光记录与自我觉察工具。它帮助用户分别留下感受、想法与真实发生的事情，再通过明细、项目、统计和日历回看生活的连续性。
 
-## 产品信息
+记录默认只保存在用户选择的本地资料库中，不需要账号，也不会上传个人记录或使用行为。
 
-- 中文名：时光日志
-- 英文名：DayLog
-- Slogan：念起觉心，知深见己。
-- 提供方：刘迷糊
+## 当前版本
 
-随机问候语存放在 `docs/data/greetings.rtf`。每行一句，页面会自动去掉行首编号后随机显示。
+当前持续开发的是 `daylog-desktop/`：基于 React、TypeScript 与 Tauri 2 的 macOS 桌面版。
 
-## 在线页面
+主要能力包括：
 
-- 正式页：`docs/index.html`
-- 测试页：`docs/test.html`
-- 数据检查页：`docs/recover.html`
+- 感受体验与多条想法记录
+- 事实经历、项目归属和投入时间记录
+- 明细回看与原位修改
+- 项目管理、统计和月历
+- 本地 JSON 数据与每日 Markdown 双重保存
+- 充能小事、其他自我探索产品与分享入口
+- 通过远程内容文件检查新版本，并前往固定飞书页面下载
 
-GitHub Pages 当前从 `docs/` 目录发布。
-
-## GitHub 仓库结构
+## 仓库结构
 
 ```text
 DayLog/
-├── README.md
-├── .gitignore
-└── docs/
-    ├── .nojekyll
-    ├── index.html
-    ├── test.html
-    ├── recover.html
-    └── assets/
-        ├── css/
-        │   ├── index.css
-        │   └── test.css
-        └── js/
-            ├── index.js
-            └── test.js
+├── daylog-desktop/       # 当前桌面版
+│   ├── src/              # React 前端
+│   ├── src-tauri/        # Tauri / Rust 桌面壳与本地资料库读写
+│   ├── public/data/      # 可维护文案、版本信息和充能小事
+│   ├── docs/             # 产品、视觉、开发与发布文档
+│   └── design/           # 当前正式图标母版
+└── docs/                 # 早期网页版本与历史测试页面
 ```
 
-## 文件说明
+旧网页版本继续公开保留，用于记录产品演进，但不再作为当前桌面版的主要开发入口。
 
-| 文件 | 作用 |
-| --- | --- |
-| `docs/index.html` | 正式页面的 HTML 结构，只保留稳定功能。 |
-| `docs/assets/css/index.css` | 正式页面样式。 |
-| `docs/assets/js/index.js` | 正式页面交互和本地数据逻辑。 |
-| `docs/test.html` | 测试页面的 HTML 结构，用来验证新功能。 |
-| `docs/assets/css/test.css` | 测试页面样式。 |
-| `docs/assets/js/test.js` | 测试页面交互和实验逻辑。 |
-| `docs/recover.html` | 本地数据检查与恢复页面。 |
-| `docs/.nojekyll` | 告诉 GitHub Pages 不使用 Jekyll 处理静态文件。 |
-| `.gitignore` | 排除本地临时文件、图标素材、旧单文件和桌面 App。 |
+## 桌面版开发
 
-## 正式页与测试页
-
-正式页和测试页已经拆分为两套资源：
-
-- 正式页只引用 `assets/css/index.css` 和 `assets/js/index.js`。
-- 测试页只引用 `assets/css/test.css` 和 `assets/js/test.js`。
-
-这样测试功能不会误进入正式页，后续也方便先在测试页验证，再决定是否发布到正式页。
-
-## 本地保留但不上 GitHub 的文件
-
-这些文件保留在电脑本地，便于后续维护，但不会出现在 GitHub 仓库里：
-
-- `daily-todo-table.html`：旧版本地单文件。
-- `时光日志.app/`：本地桌面快捷入口。
-- `daily-todo-icon.svg`、`daily-todo-icon.svg.png`：桌面图标素材。
-- `clean-icon.iconset/`、`tmp-icon.iconset/`：macOS 图标资源目录。
-- `scripts/`：本地图标生成脚本。
-- `.DS_Store`、`.Rhistory`：系统或工具产生的临时文件。
-
-## 开发检查
-
-拆分文件后，可用下面命令检查 JS 是否能被解析：
+环境要求：Node.js、Rust、macOS Command Line Tools。
 
 ```bash
-node --check docs/assets/js/index.js
-node --check docs/assets/js/test.js
+cd daylog-desktop
+npm install
+npm run tauri:dev
 ```
+
+完整检查：
+
+```bash
+npm run check
+```
+
+发布前检查：
+
+```bash
+npm run release:check
+```
+
+构建 macOS DMG：
+
+```bash
+npm run tauri:build
+```
+
+## 内容与版本维护
+
+产品文案、问候语、其他产品链接和版本信息统一维护在：
+
+`daylog-desktop/public/data/daylog-content.json`
+
+旧客户端通过以下 Raw 地址检查更新：
+
+`https://raw.githubusercontent.com/yukinliu/DayLog/main/daylog-desktop/public/data/daylog-content.json`
+
+安装包仍由固定飞书下载页提供。发布新版时，应先上传安装包，再更新并推送 `release.version`。
+
+## 数据与隐私
+
+- 用户记录只写入其选择的本地资料库。
+- `.daylog/*.json` 是应用数据源，`days/*.md` 是可阅读、可迁移的每日记录。
+- 复制整个资料库即可备份或迁移。
+- 仓库不包含用户测试资料、构建缓存、`node_modules` 或 Rust `target`。
+
+## 版权
+
+Copyright © 刘迷糊。源代码公开用于产品展示与协作测试；当前未声明开源许可证，保留所有权利。
