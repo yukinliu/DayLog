@@ -83,9 +83,6 @@ export function RecommendPage({ content }: { content: ProductContent }) {
         </div>
         <div className="recommendation-copy-block">
           <blockquote>{content.recommendation.text}</blockquote>
-          <button className="recommendation-guide-link" type="button" onClick={() => openExternalUrl(content.links.productGuideUrl)}>
-            了解并下载见己<ArrowUpRight size={13} />
-          </button>
           <button className="quiet-copy-button" type="button" onClick={copyRecommendation}>
             <Copy size={15} />
             {copyStatus === "copied" ? "已复制，可以发给朋友了" : copyStatus === "failed" ? "复制失败，请重试" : content.recommendation.copyButtonLabel}
