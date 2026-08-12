@@ -69,10 +69,13 @@ const fallbackContent: ProductContent = {
   release: { version: "0.1.0" }
 };
 
-const cacheKey = "daylog-remote-content-v2";
-const lastFetchKey = "daylog-remote-content-last-fetch-v2";
-const legacyCacheKeys = ["daylog-remote-content", "daylog-remote-content-last-fetch"];
-const refreshInterval = 24 * 60 * 60 * 1000;
+const cacheKey = "daylog-remote-content-v3";
+const legacyCacheKeys = [
+  "daylog-remote-content",
+  "daylog-remote-content-last-fetch",
+  "daylog-remote-content-v2",
+  "daylog-remote-content-last-fetch-v2"
+];
 
 function removeLegacyContentCache() {
   legacyCacheKeys.forEach((key) => window.localStorage.removeItem(key));
@@ -113,25 +116,19 @@ function readCachedContent(base: ProductContent) {
   }
 }
 
-async function loadContent(force = false): Promise<{ content: ProductContent; source: ContentSource; remoteFailed: boolean }> {
+async function loadContent(): Promise<{ content: ProductContent; source: ContentSource; remoteFailed: boolean }> {
   removeLegacyContentCache();
   const bundled = await loadBundledContent();
   const remoteUrl = bundled.remoteContentUrl.trim();
   if (!remoteUrl) return { content: bundled, source: "local", remoteFailed: false };
 
   const cached = readCachedContent(bundled);
-  const lastFetch = Number(window.localStorage.getItem(lastFetchKey) ?? 0);
-  if (!force && cached && Date.now() - lastFetch < refreshInterval) {
-    return { content: cached, source: "cache", remoteFailed: false };
-  }
-
   try {
     const response = await fetch(remoteUrl, { cache: "no-store" });
     if (!response.ok) throw new Error("remote content unavailable");
     const remote = await response.json() as Partial<ProductContent>;
     const content = mergeContent(bundled, { ...remote, remoteContentUrl: bundled.remoteContentUrl });
     window.localStorage.setItem(cacheKey, JSON.stringify(content));
-    window.localStorage.setItem(lastFetchKey, String(Date.now()));
     return { content, source: "remote", remoteFailed: false };
   } catch {
     return { content: cached ?? bundled, source: cached ? "cache" : "local", remoteFailed: true };
@@ -143,8 +140,8 @@ export function useProductContent() {
   const [source, setSource] = useState<ContentSource>("local");
   const [remoteFailed, setRemoteFailed] = useState(false);
 
-  const refresh = useCallback(async (force = false) => {
-    const loaded = await loadContent(force);
+  const refresh = useCallback(async () => {
+    const loaded = await loadContent();
     setContent(loaded.content);
     setSource(loaded.source);
     setRemoteFailed(loaded.remoteFailed);
@@ -152,7 +149,7 @@ export function useProductContent() {
   }, []);
 
   useEffect(() => {
-    void refresh(false);
+    void refresh();
   }, [refresh]);
 
   return { content, source, remoteFailed };
