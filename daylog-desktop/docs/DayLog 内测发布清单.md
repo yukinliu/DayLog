@@ -32,7 +32,7 @@ DayLog 已具备小范围、受控内测的核心能力：记录、自我觉察�
 
 ```bash
 npm run release:check
-npm run tauri:build
+npm run release:macos
 ```
 
 `release:check` 会检查四处版本号、远程内容地址、飞书链接、100 件充能小事和打包图标；随后执行前端生产构建与 Rust 资料库测试。

@@ -12,7 +12,8 @@
     "preview": "vite preview",
     "tauri": "PATH=$HOME/.cargo/bin:$PATH tauri",
     "tauri:dev": "PATH=$HOME/.cargo/bin:$PATH tauri dev",
-    "tauri:build": "PATH=$HOME/.cargo/bin:$PATH tauri build"
+    "tauri:build": "PATH=$HOME/.cargo/bin:$PATH tauri build",
+    "release:macos": "bash scripts/build-macos-dmg.sh"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
