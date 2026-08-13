@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Copy, RefreshCw, Sparkles } from "lucide-react";
+import { ArrowUpRight, Copy, HandHeart, RefreshCw } from "lucide-react";
 import { useEnergyActivities } from "../lib/energyActivities";
 import { openExternalUrl } from "../lib/persistence";
 import type { ProductContent } from "../lib/productContent";
@@ -40,7 +40,7 @@ export function RecommendPage({ content }: { content: ProductContent }) {
     <section className="discover-page">
       <article className="energy-card">
         <div className="discover-heading">
-          <span><Sparkles size={15} />{content.charge.eyebrow}</span>
+          <span><HandHeart size={15} />{content.charge.eyebrow}</span>
         </div>
         <h2>{content.charge.title}</h2>
         <p>{content.charge.intro}</p>

@@ -35,7 +35,7 @@ npm run release:check
 npm run release:macos
 ```
 
-`release:check` 会检查四处版本号、远程内容地址、飞书链接、100 件充能小事和打包图标；随后执行前端生产构建与 Rust 资料库测试。
+`release:check` 会检查四处版本号、远程内容地址、飞书链接、100 件关照小事和打包图标；随后执行前端生产构建与 Rust 资料库测试。
 
 ## 当前自动验证覆盖
 

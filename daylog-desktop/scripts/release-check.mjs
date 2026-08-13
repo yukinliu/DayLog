@@ -35,10 +35,10 @@ if (!/^https:\/\//.test(content.links?.feedbackUrl ?? "")) {
   errors.push("反馈与建议不是有效的 HTTPS 地址");
 }
 if (!Array.isArray(activities) || activities.length !== 100) {
-  errors.push(`充能小事应为 100 件，当前为 ${Array.isArray(activities) ? activities.length : "无效格式"}`);
+  errors.push(`关照小事应为 100 件，当前为 ${Array.isArray(activities) ? activities.length : "无效格式"}`);
 } else {
-  if (new Set(activities.map((item) => item.id)).size !== activities.length) errors.push("充能小事存在重复 id");
-  if (new Set(activities.map((item) => item.title)).size !== activities.length) warnings.push("充能小事存在重复标题");
+  if (new Set(activities.map((item) => item.id)).size !== activities.length) errors.push("关照小事存在重复 id");
+  if (new Set(activities.map((item) => item.title)).size !== activities.length) warnings.push("关照小事存在重复标题");
 }
 for (const icon of tauriConfig.bundle?.icon ?? []) {
   if (!fs.existsSync(path.join(root, "src-tauri", icon))) errors.push(`打包图标不存在：src-tauri/${icon}`);

@@ -4,8 +4,8 @@
 
 运营内容统一在 `public/data/daylog-content.json`：
 
-- `charge`：充能页标题、引导语和换一件小事按钮。
-- `productsSection`、`products`：其他产品区标题、产品文案与飞书链接。
+- `charge`：关照页标题、引导语和换一件小事按钮。
+- `productsSection`、`products`：预留的其他产品内容。当前客户端不展示该区域，保留数据不会影响关照页。
 - `recommendation`：DayLog 推荐语与复制按钮文案。
 - `greetings`：记录页顶部随机问候语。
 - `links.productGuideUrl`：DayLog 产品说明飞书链接。
@@ -14,7 +14,7 @@
 - `links.updateDownloadUrl`：用户下载最新版客户端的固定飞书页面。
 - `release`：最新公开版本号、发布日期与简短更新内容。
 
-100 件充能小事独立保存在 `public/data/energy-activities.json`，因为它是较长、较稳定的产品内容，不需要和每次版本发布一起修改。
+100 件关照小事独立保存在 `public/data/energy-activities.json`，因为它是较长、较稳定的产品内容，不需要和每次版本发布一起修改。
 
 ## 首次配置远程内容
 
@@ -31,29 +31,30 @@
 
 按下面顺序操作：
 
-1. 修改 `src-tauri/tauri.conf.json` 的 `version`，这是客户端实际安装版本。
-2. 构建新的 `.dmg`，完成安装测试。
-3. 把新安装包上传到固定的飞书版本下载页。
-4. 修改远程 `daylog-content.json` 的 `release`：
+1. 在项目根目录 `CHANGELOG.md` 顶部追加本次面向用户的版本记录。
+2. 同步修改 `package.json` 和 `src-tauri/tauri.conf.json` 的 `version`，后者是客户端实际安装版本。
+3. 构建 macOS 与 Windows 安装包，完成安装测试。
+4. 把新安装包上传到固定的飞书版本下载页。
+5. 修改远程 `daylog-content.json` 的 `release`：
 
 ```json
 "release": {
   "version": "0.2.0",
   "publishedAt": "2026-08-20",
-  "notes": "优化明细与充能页"
+  "notes": "优化明细与关照页"
 }
 ```
 
-5. 确认 `links.updateDownloadUrl` 仍指向固定飞书下载页，再上传 JSON。
+6. 确认 `links.updateDownloadUrl` 仍指向固定飞书下载页，再上传 JSON。
 
-应用每天最多在后台读取一次远程内容。没有更新时，“关于”只显示当前版本和更新状态；发现新版后才会显示飞书下载链接，并在左侧设置图标上显示提示点。
+应用每次启动时都会读取一次远程内容。没有更新时，“关于”只显示当前版本和更新状态；发现新版后才会显示飞书下载链接，并在左侧设置图标上显示提示点。
 
 ## 修改时的注意事项
 
 - 版本号使用 `主版本.次版本.修订号`，例如 `0.2.0`。
 - JSON 最后一项后面不要加逗号；链接与文案必须放在英文双引号内。
 - 不要把用户资料库路径、记录内容或测试数据放进该文件。
-- 远程文件短暂不可访问不会影响记录；应用会使用缓存或安装包内置内容。
+- 远程文件短暂不可访问不会影响记录；应用会使用最近一次成功读取的缓存，首次使用且没有缓存时则使用安装包内置内容。
 
 ## 匿名使用统计
 

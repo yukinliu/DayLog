@@ -44,7 +44,7 @@ const fallbackContent: ProductContent = {
   schemaVersion: 1,
   remoteContentUrl: "",
   charge: {
-    eyebrow: "此刻充能",
+    eyebrow: "此刻关照",
     countLabel: "100 件小事",
     title: "从一件具体的小事开始",
     intro: "不需要完成什么大事，照顾此刻也可以很简单。",

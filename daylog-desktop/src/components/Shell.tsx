@@ -1,14 +1,14 @@
 import {
   BarChart3,
   CalendarDays,
-  Flame,
+  HandHeart,
   FolderKanban,
   ListChecks,
   PenLine,
   Settings
 } from "lucide-react";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useEffect, useRef, type MouseEvent, type ReactNode } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { Appearance, PageKey } from "../types/daylog";
 
 interface ShellProps {
@@ -37,7 +37,7 @@ const functionNav: Array<{ key: PageKey; label: string; icon: ReactNode }> = [
 ];
 
 const productNav: Array<{ key: ProductPanelKey; label: string; icon: ReactNode }> = [
-  { key: "discover", label: "充能", icon: <Flame size={21} /> },
+  { key: "discover", label: "关照", icon: <HandHeart size={21} /> },
   { key: "settings", label: "设置", icon: <Settings size={21} /> }
 ];
 
