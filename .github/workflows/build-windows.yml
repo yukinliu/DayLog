@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches:
-      - agent/windows-build
+      - main
 
 jobs:
   build-windows:
