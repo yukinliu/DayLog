@@ -45,6 +45,6 @@ jobs:
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
         with:
-          name: jianji-v0.1.0-windows-x64
+          name: jianji-v0.1.1-windows-x64
           path: daylog-desktop/src-tauri/target/release/bundle/nsis/*-setup.exe
           if-no-files-found: error

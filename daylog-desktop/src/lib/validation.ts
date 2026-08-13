@@ -49,7 +49,7 @@ function validateProject(project: unknown, index: number, errors: string[]) {
   if (project.ddlType === "date" && (typeof project.ddlDate !== "string" || !datePattern.test(project.ddlDate))) {
     errors.push(`${scope}.ddlDate must be yyyy-mm-dd when ddlType is date`);
   }
-  if (!["active", "completed", "paused"].includes(String(project.progress))) {
+  if (!["active", "planned", "completed", "paused"].includes(String(project.progress))) {
     errors.push(`${scope}.progress is invalid`);
   }
   if (!["normal", "merged", "deleted"].includes(String(project.lifecycle))) {

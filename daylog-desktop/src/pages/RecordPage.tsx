@@ -1,14 +1,22 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { NotebookPen, Sparkles } from "lucide-react";
 import { completionOptions } from "../lib/completion";
 import { formatMinutes } from "../lib/format";
 import { moodOptions } from "../lib/mood";
 import { loadRecordDrafts, saveEventDraft, saveReflectionDraft } from "../lib/recordDraft";
-import { eventPeriods, type CompletionValue, type EventEntry, type MoodValue, type Project } from "../types/daylog";
+import { eventPeriods, type CompletionValue, type EventEntry, type MoodEntry, type MoodValue, type Project, type ThoughtEntry } from "../types/daylog";
 
 interface RecordPageProps {
   projects: Project[];
-  greetings: string[];
+  moods: MoodEntry[];
+  thoughts: ThoughtEntry[];
+  events: EventEntry[];
+  greeting: string;
+  openingSequence: number;
+  openingVisible: boolean;
+  openingStarted: boolean;
+  onOpeningReady: () => void;
+  onDismissOpening: () => void;
   summary: {
     lastMood?: { value: MoodValue };
     thoughtCount: number;
@@ -27,25 +35,37 @@ interface RecordPageProps {
   }) => Promise<boolean>;
 }
 
-const fallbackGreeting = "把今天发生的事情写下来，不急着评价它。";
-
-function pickGreeting(lines: string[]) {
-  const pool = lines.length ? lines : [fallbackGreeting];
-  const previous = sessionStorage.getItem("daylog-desktop-last-greeting");
-  const candidates = pool.length > 1 ? pool.filter((line) => line !== previous) : pool;
-  const next = candidates[Math.floor(Math.random() * candidates.length)] ?? fallbackGreeting;
-  sessionStorage.setItem("daylog-desktop-last-greeting", next);
-  return next;
-}
-
 function localDateKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 type SubmitStatus = "idle" | "saving" | "saved" | "failed";
 
-export function RecordPage({ projects, greetings, summary, onSaveReflection, onSaveEvent }: RecordPageProps) {
-  const [greeting, setGreeting] = useState(fallbackGreeting);
+function previousRecordSummary(today: string, moods: MoodEntry[], thoughts: ThoughtEntry[], events: EventEntry[]) {
+  const yesterdayDate = new Date(`${today}T00:00:00`);
+  yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+  const yesterday = localDateKey(yesterdayDate);
+  const dates = [...new Set([...moods, ...thoughts, ...events].map((entry) => entry.date))]
+    .filter((date) => date < today)
+    .sort();
+  const target = dates.includes(yesterday) ? yesterday : dates[dates.length - 1];
+  if (!target) return "不必急着整理生活，先留下此刻真实发生的事。";
+  const targetThoughts = thoughts.filter((entry) => entry.date === target).length;
+  const targetEvents = events.filter((entry) => entry.date === target);
+  const targetMoods = moods.filter((entry) => entry.date === target).length;
+  const minutes = targetEvents.reduce((sum, event) => sum + event.minutes, 0);
+  const parts = [
+    targetMoods ? "一份感受" : "",
+    targetEvents.length ? `${targetEvents.length} 条事实经历` : "",
+    targetThoughts ? `${targetThoughts} 个想法` : "",
+    minutes ? `投入 ${formatMinutes(minutes)}` : ""
+  ].filter(Boolean);
+  const dateLabel = target === yesterday ? "昨天" : `上一次记录（${Number(target.slice(5, 7))}月${Number(target.slice(8, 10))}日）`;
+  return `${dateLabel}，你留下了${parts.join("、")}。`;
+}
+
+export function RecordPage({ projects, moods, thoughts, events, greeting, openingSequence, openingVisible, openingStarted, onOpeningReady, onDismissOpening, summary, onSaveReflection, onSaveEvent }: RecordPageProps) {
+  const [greetingLanding, setGreetingLanding] = useState(false);
   const today = localDateKey();
   const [initialDrafts] = useState(loadRecordDrafts);
   const [reflectionDate, setReflectionDate] = useState(initialDrafts.reflection?.date ?? today);
@@ -65,10 +85,39 @@ export function RecordPage({ projects, greetings, summary, onSaveReflection, onS
   const [eventError, setEventError] = useState("");
   const lastMoodOption = summary.lastMood ? moodOptions.find((item) => item.value === summary.lastMood?.value) : null;
   const normalProjects = projects.filter((project) => project.lifecycle === "normal");
+  const todayThoughts = useMemo(
+    () => thoughts.filter((entry) => entry.date === today).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+    [thoughts, today]
+  );
+  const todayEvents = useMemo(
+    () => events.filter((entry) => entry.date === today).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+    [events, today]
+  );
+  const todayMoods = useMemo(
+    () => moods.filter((entry) => entry.date === today).sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
+    [moods, today]
+  );
+  const openingSummary = useMemo(
+    () => previousRecordSummary(today, moods, thoughts, events),
+    [today, moods, thoughts, events]
+  );
 
   useEffect(() => {
-    setGreeting(pickGreeting(greetings));
-  }, [greetings]);
+    if (!openingVisible || openingStarted) return;
+    const frame = window.requestAnimationFrame(onOpeningReady);
+    return () => window.cancelAnimationFrame(frame);
+  }, [openingStarted, openingVisible, onOpeningReady]);
+
+  useEffect(() => {
+    if (openingVisible) {
+      setGreetingLanding(false);
+      return;
+    }
+    if (!openingSequence) return;
+    setGreetingLanding(true);
+    const timer = window.setTimeout(() => setGreetingLanding(false), 950);
+    return () => window.clearTimeout(timer);
+  }, [openingSequence, openingVisible]);
 
   useEffect(() => {
     saveReflectionDraft(reflectionDirty ? { date: reflectionDate, mood: moodValue, thought } : null);
@@ -133,7 +182,13 @@ export function RecordPage({ projects, greetings, summary, onSaveReflection, onS
   };
 
   return (
-    <section className="page-grid record-page">
+    <section
+      className={`page-grid record-page ${greetingLanding ? "greeting-landing" : ""}`}
+      onPointerDownCapture={(event) => {
+        if (openingVisible && (event.target as Element).closest("button, input, select, textarea")) onDismissOpening();
+      }}
+      onKeyDownCapture={() => openingVisible && onDismissOpening()}
+    >
       <div className="record-intro">
         <div>
           <span>今天 · {today.split("-").join("/")}</span>
@@ -141,6 +196,15 @@ export function RecordPage({ projects, greetings, summary, onSaveReflection, onS
         </div>
         <p>{greeting}</p>
       </div>
+
+      {openingVisible && openingStarted && (
+        <div className="opening-overlay" role="status" aria-live="polite" onPointerDown={onDismissOpening}>
+          <div className="opening-glass">
+            <p>{greeting}</p>
+            <span>{openingSummary}</span>
+          </div>
+        </div>
+      )}
 
       <div className="record-inline-summary">
         <span>今日已记录</span>
@@ -191,6 +255,17 @@ export function RecordPage({ projects, greetings, summary, onSaveReflection, onS
               {reflectionSubmit === "saving" ? "保存中…" : reflectionSubmit === "saved" ? "已保存" : reflectionSubmit === "failed" ? "保存失败，重试" : "保存"}
             </button>
           </div>
+          {(todayMoods.length > 0 || todayThoughts.length > 0) && (
+            <div className="record-recall reflection-recall" aria-label="今天已保存的自我觉察">
+              {todayMoods.length > 0 && (() => {
+                const option = moodOptions.find((item) => item.value === todayMoods[todayMoods.length - 1].value);
+                return option ? <div className="recall-row mood-recall"><span>{option.emoji}</span><strong>{option.label}</strong></div> : null;
+              })()}
+              {todayThoughts.map((entry) => (
+                <div className="recall-row" key={entry.id}><time>{entry.createdAt.slice(11, 16)}</time><span>{entry.content}</span></div>
+              ))}
+            </div>
+          )}
         </form>
 
         <form className="record-panel fact-panel" onSubmit={submitEvent}>
@@ -263,6 +338,17 @@ export function RecordPage({ projects, greetings, summary, onSaveReflection, onS
               {eventSubmit === "saving" ? "保存中…" : eventSubmit === "saved" ? "已保存" : eventSubmit === "failed" ? "保存失败，重试" : "保存"}
             </button>
           </div>
+          {todayEvents.length > 0 && (
+            <div className="record-recall event-recall" aria-label="今天已保存的事实经历">
+              {todayEvents.map((entry) => (
+                <div className="recall-row" key={entry.id}>
+                  <time>{entry.period}</time>
+                  <span>{entry.title}</span>
+                  <em>{formatMinutes(entry.minutes)}</em>
+                </div>
+              ))}
+            </div>
+          )}
         </form>
       </div>
     </section>

@@ -9,7 +9,7 @@ use std::{
     sync::Mutex,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Emitter, Manager};
 use uuid::Uuid;
 
 const TELEMETRY_APP_ID: &str = "D8E956A7-C9C0-48FA-BE64-13D8FB9C0ACD";
@@ -371,6 +371,7 @@ fn ensure_empty_or_daylog_folder(path: &Path) -> Result<(), String> {
 fn initial_settings(now_iso: &str) -> Value {
     json!({
         "schemaVersion": 1,
+        "projectStatusModel": 2,
         "lastOpenedAt": now_iso,
         "appearance": "mist-paper",
         "projectColorScheme": "seasonal"
@@ -562,7 +563,9 @@ fn close_main_window(app: AppHandle) -> Result<(), String> {
         .ok_or_else(|| "无法找到主窗口".to_string())?;
     #[cfg(target_os = "macos")]
     {
-        window.hide().map_err(|error| format!("无法关闭窗口：{error}"))?;
+        window
+            .hide()
+            .map_err(|error| format!("无法关闭窗口：{error}"))?;
     }
     #[cfg(not(target_os = "macos"))]
     {
@@ -610,6 +613,7 @@ pub fn run() {
                 if let Some(window) = app.get_webview_window("main") {
                     let _ = window.show();
                     let _ = window.set_focus();
+                    let _ = app.emit("main-window-opened", ());
                 }
             }
         });

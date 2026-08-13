@@ -13,9 +13,8 @@ interface ProjectsPageProps {
   onMergeProject: (id: string, targetId: string) => void;
 }
 
-type ProjectTab = "active" | "planned" | "completed" | "paused" | "all";
-type ProjectStatusTab = Exclude<ProjectTab, "all">;
-type DerivedProjectStatus = ProjectStatusTab | "expired";
+type ProjectView = "all" | "dueSoon" | "recent" | "overdue";
+type ProjectStatus = Project["progress"];
 
 function createdTime(project: Project) {
   const value = new Date(project.createdAt).getTime();
@@ -24,9 +23,8 @@ function createdTime(project: Project) {
 
 function isUnnamedProject(project: Project) {
   return project.lifecycle === "normal"
-    && project.progress === "active"
-    && project.name.trim().startsWith("未命名")
-    && project.ddlType === "undecided";
+    && (project.progress === "active" || project.progress === "planned")
+    && project.name.trim().startsWith("未命名");
 }
 
 function localDateKey() {
@@ -34,12 +32,31 @@ function localDateKey() {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-function projectStatus(project: Project): DerivedProjectStatus {
-  if (project.progress === "completed") return "completed";
-  if (project.progress === "paused") return "paused";
-  if (project.ddlType === "undecided") return "planned";
-  if (project.ddlType === "date" && project.ddlDate && project.ddlDate < localDateKey()) return "expired";
-  return "active";
+function isOverdue(project: Project) {
+  return project.ddlType === "date"
+    && Boolean(project.ddlDate && project.ddlDate < localDateKey())
+    && (project.progress === "active" || project.progress === "planned");
+}
+
+function isDueSoon(project: Project) {
+  if (project.ddlType !== "date" || !project.ddlDate) return false;
+  if (project.progress !== "active" && project.progress !== "planned") return false;
+  const today = new Date(`${localDateKey()}T00:00:00`);
+  const deadline = new Date(`${project.ddlDate}T00:00:00`);
+  const days = Math.round((deadline.getTime() - today.getTime()) / 86_400_000);
+  return days >= 0 && days <= 30;
+}
+
+function isRecent(project: Project) {
+  const age = Date.now() - createdTime(project);
+  return age >= 0 && age <= 24 * 60 * 60 * 1000;
+}
+
+function matchesView(project: Project, view: ProjectView) {
+  if (view === "dueSoon") return isDueSoon(project);
+  if (view === "recent") return isRecent(project);
+  if (view === "overdue") return isOverdue(project);
+  return true;
 }
 
 function ddlSortValue(project: Project) {
@@ -65,22 +82,21 @@ function sortProjects(projects: Project[]) {
 
 function projectDdlLabel(project: Project) {
   if (project.ddlType === "date") return project.ddlDate ?? "未设置日期";
-  if (project.ddlType === "long-term") return "长期推进";
-  return "还没想好";
+  if (project.ddlType === "long-term") return "长期有效";
+  return "暂未确定";
 }
 
 function progressLabel(project: Project) {
   if (project.progress === "completed") return "已完成";
   if (project.progress === "paused") return "已暂停";
-  if (projectStatus(project) === "expired") return "已过期";
-  return project.ddlType === "undecided" ? "待计划" : "进行中";
+  if (project.progress === "planned") return "待计划";
+  return "进行中";
 }
 
-function tabLabel(tab: ProjectTab) {
-  if (tab === "active") return "进行中";
-  if (tab === "planned") return "待计划";
-  if (tab === "completed") return "已完成";
-  if (tab === "paused") return "暂停中";
+function viewLabel(view: ProjectView) {
+  if (view === "dueSoon") return "临期";
+  if (view === "recent") return "新增";
+  if (view === "overdue") return "逾期";
   return "全部";
 }
 
@@ -92,7 +108,7 @@ export function ProjectsPage({
   onDeleteProject,
   onMergeProject
 }: ProjectsPageProps) {
-  const [tab, setTab] = useState<ProjectTab>("active");
+  const [view, setView] = useState<ProjectView>("all");
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [actionDialog, setActionDialog] = useState<"merge" | "delete" | null>(null);
   const [mergeTargetId, setMergeTargetId] = useState("");
@@ -115,18 +131,21 @@ export function ProjectsPage({
     return metrics;
   }, [events]);
   const projectCounts = useMemo(() => ({
-    active: normalProjects.filter((project) => projectStatus(project) === "active").length,
-    planned: normalProjects.filter((project) => projectStatus(project) === "planned").length,
-    completed: normalProjects.filter((project) => projectStatus(project) === "completed").length,
-    paused: normalProjects.filter((project) => projectStatus(project) === "paused").length,
-    all: normalProjects.length
+    all: normalProjects.length,
+    dueSoon: normalProjects.filter(isDueSoon).length,
+    recent: normalProjects.filter(isRecent).length,
+    overdue: normalProjects.filter(isOverdue).length
   }), [normalProjects]);
-  const visibleProjects = sortProjects(
-    tab === "all"
-      ? normalProjects
-      : normalProjects.filter((project) => projectStatus(project) === tab)
+  const visibleProjects = useMemo(
+    () => sortProjects(normalProjects.filter((project) => matchesView(project, view))),
+    [normalProjects, view]
   );
   const selectedProject = normalProjects.find((project) => project.id === selectedProjectId) ?? null;
+
+  useEffect(() => {
+    if (selectedProjectId) return;
+    setSelectedProjectId(visibleProjects[0]?.id ?? null);
+  }, [selectedProjectId, visibleProjects]);
 
   useEffect(() => {
     setProjectNameDraft(selectedProject?.name ?? "");
@@ -149,7 +168,7 @@ export function ProjectsPage({
   const mergeTargets = selectedProject
     ? normalProjects.filter((project) => project.id !== selectedProject.id)
     : [];
-  const selectedStatus = selectedProject ? projectStatus(selectedProject) : "active";
+  const selectedStatus = selectedProject?.progress ?? "active";
 
   const updateSelectedProject = (patch: Partial<Project>) => {
     if (!selectedProject) return;
@@ -159,24 +178,13 @@ export function ProjectsPage({
   const createNewProject = () => {
     if (normalProjects.some(isUnnamedProject) && !window.confirm("还有未命名项目未处理，仍要继续新增吗？")) return;
     const project = onCreateProject();
-    setTab("all");
+    setView("all");
     setSelectedProjectId(project.id);
   };
 
-  const setProjectStatus = (nextStatus: ProjectStatusTab) => {
+  const setProjectStatus = (nextStatus: ProjectStatus) => {
     if (!selectedProject) return;
-    if (nextStatus === "completed" || nextStatus === "paused") {
-      updateSelectedProject({ progress: nextStatus });
-      return;
-    }
-    if (nextStatus === "planned") {
-      updateSelectedProject({ progress: "active", ddlType: "undecided", ddlDate: undefined });
-      return;
-    }
-    updateSelectedProject({
-      progress: "active",
-      ddlType: selectedProject.ddlType === "undecided" ? "long-term" : selectedProject.ddlType
-    });
+    updateSelectedProject({ progress: nextStatus });
   };
 
   const openMergeDialog = () => {
@@ -227,17 +235,18 @@ export function ProjectsPage({
     <section className="page-grid projects-page">
       <div className="toolbar-card">
         <div className="segmented">
-          {(["active", "planned", "completed", "paused", "all"] as ProjectTab[]).map((item) => (
+          {(["all", "dueSoon", "recent", "overdue"] as ProjectView[]).map((item) => (
             <button
-              className={tab === item ? "active" : ""}
+              className={view === item ? "active" : ""}
               key={item}
               type="button"
               onClick={() => {
-                setTab(item);
-                setSelectedProjectId(null);
+                setView(item);
+                const nextProjects = sortProjects(normalProjects.filter((project) => matchesView(project, item)));
+                setSelectedProjectId(nextProjects[0]?.id ?? null);
               }}
             >
-              {tabLabel(item)} {projectCounts[item]}
+              {viewLabel(item)} {projectCounts[item]}
             </button>
           ))}
         </div>
@@ -298,8 +307,8 @@ export function ProjectsPage({
                   </div>
                 </details>
               </div>
-              {tab !== "all" && selectedStatus !== tab && (
-                <div className="project-moved-note">当前状态为「{selectedStatus === "expired" ? "已过期" : tabLabel(selectedStatus)}」，你可以继续编辑当前项目。</div>
+              {!matchesView(selectedProject, view) && (
+                <div className="project-moved-note">项目条件已经变化，你可以继续完成当前编辑；切换筛选后将按新结果定位。</div>
               )}
               <dl className="detail-metrics">
                 <div>
@@ -328,28 +337,32 @@ export function ProjectsPage({
                   />
                 </label>
                 <label className="field">
-                  <span>DDL 类型</span>
+                  <span>截止日期</span>
                   <select
                     value={selectedProject.ddlType}
-                    onChange={(event) => updateSelectedProject({
-                      ddlType: event.target.value as Project["ddlType"],
-                      ddlDate: event.target.value === "date" ? selectedProject.ddlDate : undefined
-                    })}
+                    onChange={(event) => {
+                      const ddlType = event.target.value as Project["ddlType"];
+                      updateSelectedProject({
+                        ddlType,
+                        ddlDate: ddlType === "date" ? (selectedProject.ddlDate ?? localDateKey()) : undefined
+                      });
+                    }}
                   >
+                    <option value="long-term">长期有效</option>
+                    <option value="undecided">暂未确定</option>
                     <option value="date">指定日期</option>
-                    <option value="long-term">长期推进</option>
-                    <option value="undecided">还没想好</option>
                   </select>
                 </label>
-                <label className="field">
-                  <span>截止日期</span>
-                  <input
-                    disabled={selectedProject.ddlType !== "date"}
-                    type="date"
-                    value={selectedProject.ddlDate ?? ""}
-                    onChange={(event) => updateSelectedProject({ ddlDate: event.target.value || undefined })}
-                  />
-                </label>
+                {selectedProject.ddlType === "date" && (
+                  <label className="field">
+                    <span>指定日期</span>
+                    <input
+                      type="date"
+                      value={selectedProject.ddlDate ?? ""}
+                      onChange={(event) => updateSelectedProject({ ddlDate: event.target.value || undefined })}
+                    />
+                  </label>
+                )}
               </div>
               <div className="tag-row project-status-row">
                 <button

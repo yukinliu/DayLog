@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { MousePointer2, Trash2 } from "lucide-react";
+import { MousePointer2, Search, Trash2, X } from "lucide-react";
 import { TimeDistribution } from "../components/TimeDistribution";
 import { completionOptions } from "../lib/completion";
 import { formatMinutes } from "../lib/format";
@@ -22,6 +22,9 @@ interface DetailsPageProps {
 
 type ProjectFilter = { value: string | null } | null;
 type EventSaveStatus = "idle" | "dirty" | "saving" | "saved" | "failed";
+type SearchResult =
+  | { kind: "event"; id: string; date: string; title: string; excerpt: string; meta: string }
+  | { kind: "thought"; id: string; date: string; title: string; excerpt: string; meta: string };
 const periodOrder = eventPeriods;
 
 function formatSlash(date: string) {
@@ -76,7 +79,11 @@ export function DetailsPage({
   const [editingThoughtId, setEditingThoughtId] = useState<string | null>(null);
   const [thoughtDraft, setThoughtDraft] = useState("");
   const [deleteEventTarget, setDeleteEventTarget] = useState<EventEntry | null>(null);
+  const [searchDraft, setSearchDraft] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [highlightedThoughtId, setHighlightedThoughtId] = useState<string | null>(null);
   const calendarScrollRef = useRef<HTMLDivElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const dayEvents = useMemo(
     () => events
@@ -96,10 +103,41 @@ export function DetailsPage({
   const lastMood = dayMoods[dayMoods.length - 1];
   const totalMinutes = dayEvents.reduce((sum, event) => sum + event.minutes, 0);
   const selectedEvent = dayEvents.find((event) => event.id === selectedEventId) ?? null;
-  const visibleEvents = projectFilter
-    ? dayEvents.filter((event) => event.projectId === projectFilter.value)
-    : dayEvents;
+  const visibleEvents = useMemo(
+    () => projectFilter ? dayEvents.filter((event) => event.projectId === projectFilter.value) : dayEvents,
+    [dayEvents, projectFilter]
+  );
   const normalProjects = projects.filter((project) => project.lifecycle === "normal");
+  const searchResults = useMemo<SearchResult[]>(() => {
+    const query = searchQuery.trim().toLocaleLowerCase("zh-Hans-CN");
+    if (!query) return [];
+    const results: SearchResult[] = [];
+    events.forEach((event) => {
+      const project = projects.find((item) => item.id === event.projectId);
+      const projectLabel = project?.name ?? "";
+      if (![event.title, event.note, projectLabel].some((value) => value.toLocaleLowerCase("zh-Hans-CN").includes(query))) return;
+      results.push({
+        kind: "event",
+        id: event.id,
+        date: event.date,
+        title: event.title,
+        excerpt: event.note || projectLabel || "事实经历",
+        meta: `${event.period} · ${formatMinutes(event.minutes)}`
+      });
+    });
+    thoughts.forEach((thought) => {
+      if (!thought.content.toLocaleLowerCase("zh-Hans-CN").includes(query)) return;
+      results.push({
+        kind: "thought",
+        id: thought.id,
+        date: thought.date,
+        title: thought.content,
+        excerpt: "自我觉察",
+        meta: thought.createdAt.slice(11, 16)
+      });
+    });
+    return results.sort((a, b) => b.date.localeCompare(a.date) || b.meta.localeCompare(a.meta)).slice(0, 80);
+  }, [events, projects, searchQuery, thoughts]);
 
   const projectName = (projectId: string | null) =>
     projectId ? projects.find((project) => project.id === projectId)?.name ?? "已删除项目" : "暂不设置项目";
@@ -198,6 +236,27 @@ export function DetailsPage({
   }, [selectedEvent?.id]);
 
   useEffect(() => {
+    const timer = window.setTimeout(() => setSearchQuery(searchDraft), 150);
+    return () => window.clearTimeout(timer);
+  }, [searchDraft]);
+
+  useEffect(() => {
+    const firstId = visibleEvents[0]?.id ?? null;
+    setSelectedEventId((current) => current && visibleEvents.some((event) => event.id === current) ? current : firstId);
+  }, [visibleEvents]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLocaleLowerCase() === "k") {
+        event.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
     if (!eventDraft || !draftIsDirty) return;
     setEventSaveStatus("dirty");
     if (!eventDraft.title.trim() || !eventDraft.date) return;
@@ -221,6 +280,7 @@ export function DetailsPage({
     else setInternalSelectedDate(date);
     setProjectFilter(null);
     setSelectedEventId(null);
+    setHighlightedThoughtId(null);
     cancelThoughtEdit();
   };
 
@@ -238,6 +298,18 @@ export function DetailsPage({
   const selectEvent = (id: string) => {
     flushEventDraft();
     setSelectedEventId(id);
+  };
+
+  const selectSearchResult = (result: SearchResult) => {
+    changeSelectedDate(result.date);
+    if (result.kind === "event") {
+      setSelectedEventId(result.id);
+      setHighlightedThoughtId(null);
+    } else {
+      setHighlightedThoughtId(result.id);
+    }
+    setSearchDraft("");
+    setSearchQuery("");
   };
 
   return (
@@ -266,7 +338,32 @@ export function DetailsPage({
       <div className="details-main">
         <div className="range-toolbar single-day">
           <div><strong>{formatSlash(selectedDate)}</strong></div>
-          <span className="inline-pill">事实经历 {dayEvents.length} 条 · 想法 {dayThoughts.length} 条 · {formatMinutes(totalMinutes)}</span>
+          <div className="details-toolbar-actions">
+            <div className="global-record-search">
+              <Search size={14} />
+              <input
+                ref={searchInputRef}
+                value={searchDraft}
+                onChange={(event) => setSearchDraft(event.target.value)}
+                placeholder="搜索全部记录"
+                aria-label="搜索全部记录"
+              />
+              {searchDraft && <button type="button" aria-label="清空搜索" onClick={() => setSearchDraft("")}><X size={13} /></button>}
+              {searchQuery.trim() && (
+                <div className="global-search-results">
+                  {searchResults.map((result) => (
+                    <button key={`${result.kind}-${result.id}`} type="button" onClick={() => selectSearchResult(result)}>
+                      <time>{formatSlash(result.date)}</time>
+                      <span><small>{result.kind === "event" ? "事实经历" : "自我觉察"}</small><strong>{result.title}</strong><em>{result.excerpt}</em></span>
+                      <i>{result.meta}</i>
+                    </button>
+                  ))}
+                  {!searchResults.length && <div className="search-empty">没有找到相关记录</div>}
+                </div>
+              )}
+            </div>
+            <span className="inline-pill">事实经历 {dayEvents.length} 条 · 想法 {dayThoughts.length} 条 · {formatMinutes(totalMinutes)}</span>
+          </div>
         </div>
 
         <section className={`inner-day-panel ${!dayThoughts.length ? "is-empty" : ""}`}>
@@ -283,7 +380,7 @@ export function DetailsPage({
               {dayThoughts.map((thought) => {
                 const isEditing = editingThoughtId === thought.id;
                 return (
-                  <div className={`thought-row ${isEditing ? "editing" : ""}`} key={thought.id}>
+                  <div className={`thought-row ${isEditing ? "editing" : ""} ${highlightedThoughtId === thought.id ? "search-highlight" : ""}`} key={thought.id}>
                     <span>{thought.createdAt.slice(11, 16)}</span>
                     {isEditing ? (
                       <div className="thought-inline-editor">

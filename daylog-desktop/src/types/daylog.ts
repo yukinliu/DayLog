@@ -11,7 +11,7 @@ export type MoodValue =
 
 export type CompletionValue = "excellent" | "progress" | "minimum" | "unplanned";
 export type DdlType = "date" | "long-term" | "undecided";
-export type ProjectProgress = "active" | "completed" | "paused";
+export type ProjectProgress = "active" | "planned" | "completed" | "paused";
 export type ProjectLifecycle = "normal" | "merged" | "deleted";
 export const appearanceValues = ["mist-paper", "earth-paper", "quiet-blue", "moss-paper", "lotus-paper", "ink-paper", "gold-paper"] as const;
 export type Appearance = typeof appearanceValues[number];
@@ -75,6 +75,7 @@ export interface Project {
 
 export interface AppSettings {
   schemaVersion: 1;
+  projectStatusModel?: 2;
   vaultPath: string;
   lastOpenedAt: string;
   appearance: Appearance;

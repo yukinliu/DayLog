@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { Shell, type ProductPanelKey } from "./components/Shell";
 import { CalendarPage } from "./pages/CalendarPage";
 import { DetailsPage } from "./pages/DetailsPage";
@@ -20,6 +21,16 @@ import type { AppSettings, CompletionValue, DayLogData, EventEntry, MoodValue, P
 
 type SaveStatus = "idle" | "saving" | "saved" | "failed";
 type LoadStatus = "loading" | "needs-vault" | "ready" | "error";
+const fallbackGreeting = "把今天发生的事情写下来，不急着评价它。";
+
+function pickOpeningGreeting(lines: string[]) {
+  const pool = lines.length ? lines : [fallbackGreeting];
+  const previous = localStorage.getItem("jianji-greeting-text");
+  const candidates = pool.length > 1 ? pool.filter((line) => line !== previous) : pool;
+  const next = candidates[Math.floor(Math.random() * candidates.length)] ?? fallbackGreeting;
+  localStorage.setItem("jianji-greeting-text", next);
+  return next;
+}
 
 function localDateKey(date = new Date()) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -54,23 +65,44 @@ export default function App() {
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [saveError, setSaveError] = useState("");
   const [detailsDate, setDetailsDate] = useState(localDateKey());
+  const [openingSequence, setOpeningSequence] = useState(0);
+  const [openingVisible, setOpeningVisible] = useState(false);
+  const [openingStarted, setOpeningStarted] = useState(false);
+  const [openingGreeting, setOpeningGreeting] = useState(fallbackGreeting);
+  const greetingsRef = useRef(productContent.greetings);
+  const initialOpeningHandled = useRef(false);
   const saveRevision = useRef(0);
   const lastFailedSave = useRef<{ data: DayLogData; change: PersistChange } | null>(null);
+
+  greetingsRef.current = productContent.greetings;
 
   useEffect(() => {
     startTelemetry();
   }, []);
 
   const acceptLoadedData = (loaded: { data: DayLogData }) => {
-    const projects = assignMissingProjectColors(loaded.data.projects);
-    const normalizedData = projects.some((project, index) => project !== loaded.data.projects[index])
-      ? { ...loaded.data, projects }
+    const needsStatusMigration = loaded.data.settings.projectStatusModel !== 2;
+    const legacyNormalizedProjects = needsStatusMigration
+      ? loaded.data.projects.map((project) => (
+          project.progress === "active" && project.ddlType === "undecided"
+            ? { ...project, progress: "planned" as const }
+            : project
+        ))
+      : loaded.data.projects;
+    const projects = assignMissingProjectColors(legacyNormalizedProjects);
+    const colorsChanged = projects.some((project, index) => project !== loaded.data.projects[index]);
+    const normalizedData = needsStatusMigration || colorsChanged
+      ? {
+          ...loaded.data,
+          settings: { ...loaded.data.settings, projectStatusModel: 2 as const },
+          projects
+        }
       : loaded.data;
     lastFailedSave.current = null;
     dataRef.current = normalizedData;
     setData(normalizedData);
     if (normalizedData !== loaded.data) {
-      void persistVault(normalizedData, { dataKeys: ["projects"] });
+      void persistVault(normalizedData, { dataKeys: needsStatusMigration ? ["settings", "projects"] : ["projects"] });
     }
     const dates = [...normalizedData.events, ...normalizedData.moods, ...normalizedData.thoughts]
       .map((entry) => entry.date)
@@ -80,6 +112,34 @@ export default function App() {
     setLoadStatus("ready");
     setSaveStatus("idle");
   };
+
+  useEffect(() => {
+    if (loadStatus !== "ready") return;
+    let unlisten: (() => void) | undefined;
+    let disposed = false;
+    if (!initialOpeningHandled.current) {
+      initialOpeningHandled.current = true;
+      setOpeningGreeting(pickOpeningGreeting(greetingsRef.current));
+      setOpeningSequence((current) => current + 1);
+      setOpeningVisible(true);
+      setOpeningStarted(false);
+    }
+    listen("main-window-opened", () => {
+      setActivePage("record");
+      setActiveProductPanel(null);
+      setOpeningGreeting(pickOpeningGreeting(greetingsRef.current));
+      setOpeningSequence((current) => current + 1);
+      setOpeningVisible(true);
+      setOpeningStarted(false);
+    }).then((stopListening) => {
+      if (disposed) stopListening();
+      else unlisten = stopListening;
+    });
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [loadStatus]);
 
   useEffect(() => {
     let active = true;
@@ -327,7 +387,7 @@ export default function App() {
     const project: Project = {
       id: `project-${Date.now()}`,
       name: "未命名项目",
-      ddlType: "undecided",
+      ddlType: "long-term",
       progress: "active",
       lifecycle: "normal",
       createdAt: now,
@@ -362,7 +422,7 @@ export default function App() {
           : "restarted"
       : "updated";
     const reopenedWithOccupiedColor = previous?.progress === "completed"
-      && nextProject.progress === "active"
+      && (nextProject.progress === "active" || nextProject.progress === "planned")
       && nextProject.colorKey
       && current.projects.some((project) => project.id !== nextProject.id
         && project.lifecycle === "normal"
@@ -452,10 +512,14 @@ export default function App() {
   };
 
   const navigatePage = (page: PageKey) => {
+    setOpeningVisible(false);
     if (page === "details") setDetailsDate(localDateKey());
     setActivePage(page);
     setActiveProductPanel(null);
   };
+
+  const markOpeningReady = () => setOpeningStarted(true);
+  const dismissOpening = () => setOpeningVisible(false);
 
   const toggleProductPanel = (panel: ProductPanelKey) => {
     setActiveProductPanel((current) => current === panel ? null : panel);
@@ -494,10 +558,18 @@ export default function App() {
       {activePage === "record" && (
         <RecordPage
           projects={data.projects}
+          moods={data.moods}
+          thoughts={data.thoughts}
+          events={data.events}
           summary={recordSummary}
           onSaveReflection={saveReflection}
           onSaveEvent={saveEvent}
-          greetings={productContent.greetings}
+          greeting={openingGreeting}
+          openingSequence={openingSequence}
+          openingVisible={openingVisible}
+          openingStarted={openingStarted}
+          onOpeningReady={markOpeningReady}
+          onDismissOpening={dismissOpening}
         />
       )}
       {activePage === "details" && (

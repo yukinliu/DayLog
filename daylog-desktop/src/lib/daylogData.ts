@@ -15,6 +15,7 @@ export function createEmptyDayLogData(vaultPath: string, nowIso: string): DayLog
     version: 1,
     settings: {
       schemaVersion: 1,
+      projectStatusModel: 2,
       vaultPath,
       lastOpenedAt: nowIso,
       appearance: "mist-paper",
@@ -99,15 +100,9 @@ export function todayInputSummary(params: {
   events: EventEntry[];
 }) {
   const { createdDate, moods, thoughts, events } = params;
-  const isCreatedToday = (createdAt: string) => {
-    const date = new Date(createdAt);
-    if (!Number.isFinite(date.getTime())) return false;
-    const localKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    return localKey === createdDate;
-  };
-  const todayMoods = moods.filter((entry) => isCreatedToday(entry.createdAt));
-  const todayThoughts = thoughts.filter((entry) => isCreatedToday(entry.createdAt));
-  const todayEvents = events.filter((entry) => isCreatedToday(entry.createdAt));
+  const todayMoods = moods.filter((entry) => entry.date === createdDate);
+  const todayThoughts = thoughts.filter((entry) => entry.date === createdDate);
+  const todayEvents = events.filter((entry) => entry.date === createdDate);
   const sortedMoods = [...todayMoods].sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
   return {

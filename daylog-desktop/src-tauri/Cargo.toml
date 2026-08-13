@@ -1,8 +1,7 @@
 [package]
 name = "daylog-desktop"
-version = "0.1.0"
+version = "0.1.1"
 description = "见己 Desktop"
-authors = ["YKLSAC"]
 edition = "2021"
 
 [lib]

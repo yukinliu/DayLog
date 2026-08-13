@@ -66,7 +66,7 @@ const fallbackContent: ProductContent = {
   },
   products: [],
   greetings: ["正念并不难，我们只需要记得去做。——莎朗·扎尔茨贝格"],
-  release: { version: "0.1.0" }
+  release: { version: "0.1.1" }
 };
 
 const cacheKey = "daylog-remote-content-v3";

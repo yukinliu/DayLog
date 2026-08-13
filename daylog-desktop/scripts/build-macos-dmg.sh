@@ -5,7 +5,7 @@ set -euo pipefail
 project_dir="$(cd "$(dirname "$0")/.." && pwd)"
 app_path="$project_dir/src-tauri/target/release/bundle/macos/见己.app"
 dmg_dir="$project_dir/src-tauri/target/release/bundle/dmg"
-dmg_path="$dmg_dir/见己_0.1.0_aarch64.dmg"
+dmg_path="$dmg_dir/见己_0.1.1_aarch64.dmg"
 stage_dir="$(mktemp -d /private/tmp/jianji-macos-release.XXXXXX)"
 
 cleanup() {
