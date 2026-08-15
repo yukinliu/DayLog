@@ -18,18 +18,18 @@ export const appearanceOptions: Array<{
 ];
 
 export const projectColorOptions: ReadonlyArray<{ key: ProjectColorKey; label: string; color: string }> = [
-  { key: "stone-blue", label: "石青", color: "#527984" },
-  { key: "cinnabar", label: "朱砂", color: "#9B6254" },
-  { key: "stone-green", label: "石绿", color: "#667D61" },
-  { key: "orpiment", label: "黄丹", color: "#AA844B" },
-  { key: "indigo", label: "绀青", color: "#5D6882" },
-  { key: "ochre", label: "赭石", color: "#88664F" },
-  { key: "blue-green", label: "青黛", color: "#4D7C70" },
-  { key: "purple", label: "紫棠", color: "#7C6A80" },
-  { key: "olive", label: "秋香", color: "#858155" },
-  { key: "rouge", label: "胭脂", color: "#986875" },
-  { key: "smoke-blue", label: "烟蓝", color: "#72889A" },
-  { key: "tea-brown", label: "茶褐", color: "#75645B" }
+  { key: "stone-blue", label: "绀青", color: "#405575" },
+  { key: "cinnabar", label: "朱砂", color: "#9E5045" },
+  { key: "stone-green", label: "石绿", color: "#5B7957" },
+  { key: "orpiment", label: "雌黄", color: "#B69A55" },
+  { key: "indigo", label: "紫棠", color: "#71577B" },
+  { key: "ochre", label: "石青", color: "#528894" },
+  { key: "blue-green", label: "胭脂", color: "#A06077" },
+  { key: "purple", label: "橘黄", color: "#A86E43" },
+  { key: "olive", label: "秋香", color: "#85854A" },
+  { key: "rouge", label: "烟蓝", color: "#829DAC" },
+  { key: "smoke-blue", label: "赭石", color: "#745442" },
+  { key: "tea-brown", label: "墨灰", color: "#555B58" }
 ];
 
 const projectColorMap = new Map(projectColorOptions.map((item) => [item.key, item.color]));

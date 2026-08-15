@@ -4,7 +4,7 @@ const storageKey = "daylog-record-drafts-v1";
 
 export interface ReflectionDraft {
   date: string;
-  mood: MoodValue;
+  mood?: MoodValue;
   thought: string;
 }
 

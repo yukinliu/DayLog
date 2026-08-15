@@ -1,7 +1,7 @@
 import {
   BarChart3,
   CalendarDays,
-  HandHeart,
+  ScanEye,
   FolderKanban,
   ListChecks,
   PenLine,
@@ -37,7 +37,7 @@ const functionNav: Array<{ key: PageKey; label: string; icon: ReactNode }> = [
 ];
 
 const productNav: Array<{ key: ProductPanelKey; label: string; icon: ReactNode }> = [
-  { key: "discover", label: "关照", icon: <HandHeart size={21} /> },
+  { key: "discover", label: "观照", icon: <ScanEye size={21} /> },
   { key: "settings", label: "设置", icon: <Settings size={21} /> }
 ];
 

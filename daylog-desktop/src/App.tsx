@@ -163,16 +163,35 @@ export default function App() {
     const appWindow = getCurrentWindow();
     let unlisten: (() => void) | undefined;
     let disposed = false;
+    let closeInProgress = false;
 
     appWindow.onCloseRequested(async (event) => {
       event.preventDefault();
+      if (closeInProgress) return;
+      closeInProgress = true;
       try {
         await waitForPendingSaves();
       } catch {
-        if (!window.confirm("最近一次保存失败，仍要退出并放弃未保存的更改吗？")) return;
+        if (!window.confirm("最近一次保存失败，仍要退出并放弃未保存的更改吗？")) {
+          closeInProgress = false;
+          return;
+        }
       }
-      if (hasUnsavedRecordDraft() && !window.confirm("记录页还有未保存的草稿，仍要退出吗？")) return;
-      await invoke("close_main_window");
+      if (hasUnsavedRecordDraft() && !window.confirm("记录页还有未保存的草稿，仍要退出吗？")) {
+        closeInProgress = false;
+        return;
+      }
+      try {
+        // Hide before the native window is destroyed so WebView teardown cannot
+        // expose a transient black frame on either macOS or Windows.
+        await appWindow.hide();
+        await invoke("close_main_window");
+      } catch (error) {
+        closeInProgress = false;
+        await appWindow.show().catch(() => undefined);
+        await appWindow.setFocus().catch(() => undefined);
+        window.alert(`无法关闭窗口：${error instanceof Error ? error.message : String(error)}`);
+      }
     }).then((stopListening) => {
       if (disposed) stopListening();
       else unlisten = stopListening;
@@ -296,7 +315,7 @@ export default function App() {
   const deleteEvent = (eventId: string) => {
     const current = dataRef.current ?? data;
     const deleted = current.events.find((event) => event.id === eventId);
-    commitData((latest) => ({
+    return commitData((latest) => ({
       ...latest,
       events: latest.events.filter((event) => event.id !== eventId)
     }), { dataKeys: ["events"], affectedDates: deleted ? [deleted.date] : [] });
@@ -312,27 +331,33 @@ export default function App() {
   const deleteThought = (thoughtId: string) => {
     const current = dataRef.current ?? data;
     const deleted = current.thoughts.find((thought) => thought.id === thoughtId);
-    commitData((latest) => ({
+    return commitData((latest) => ({
       ...latest,
       thoughts: latest.thoughts.filter((thought) => thought.id !== thoughtId)
     }), { dataKeys: ["thoughts"], affectedDates: deleted ? [deleted.date] : [] });
   };
 
-  const saveReflection = async (input: { date: string; mood: MoodValue; thought: string }) => {
+  const saveReflection = async (input: { date: string; mood?: MoodValue; thought: string }) => {
     if (!input.date) return false;
     const now = localIsoString();
     const thoughtContent = input.thought.trim();
+    if (!input.mood && !thoughtContent) return false;
+    const dataKeys: Array<"moods" | "thoughts"> = [];
+    if (input.mood) dataKeys.push("moods");
+    if (thoughtContent) dataKeys.push("thoughts");
     const saved = await commitData((latest) => ({
       ...latest,
-      moods: [
-        ...latest.moods,
-        {
-          id: createId("mood"),
-          date: input.date,
-          createdAt: now,
-          value: input.mood
-        }
-      ],
+      moods: input.mood
+        ? [
+            ...latest.moods.filter((mood) => mood.date !== input.date),
+            {
+              id: createId("mood"),
+              date: input.date,
+              createdAt: now,
+              value: input.mood
+            }
+          ]
+        : latest.moods,
       thoughts: thoughtContent
         ? [
             ...latest.thoughts,
@@ -344,9 +369,18 @@ export default function App() {
             }
           ]
         : latest.thoughts
-    }), { dataKeys: thoughtContent ? ["moods", "thoughts"] : ["moods"], affectedDates: [input.date] });
+    }), { dataKeys, affectedDates: [input.date] });
     if (saved) trackTelemetryEvent("first_reflection_saved");
     return saved;
+  };
+
+  const deleteMood = (date: string) => {
+    const current = dataRef.current ?? data;
+    if (!current.moods.some((mood) => mood.date === date)) return Promise.resolve(true);
+    return commitData((latest) => ({
+      ...latest,
+      moods: latest.moods.filter((mood) => mood.date !== date)
+    }), { dataKeys: ["moods"], affectedDates: [date] });
   };
 
   const saveEvent = async (input: {
@@ -563,6 +597,9 @@ export default function App() {
           events={data.events}
           summary={recordSummary}
           onSaveReflection={saveReflection}
+          onDeleteMood={deleteMood}
+          onDeleteThought={deleteThought}
+          onDeleteEvent={deleteEvent}
           onSaveEvent={saveEvent}
           greeting={openingGreeting}
           openingSequence={openingSequence}

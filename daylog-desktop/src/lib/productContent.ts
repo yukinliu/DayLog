@@ -44,17 +44,17 @@ const fallbackContent: ProductContent = {
   schemaVersion: 1,
   remoteContentUrl: "",
   charge: {
-    eyebrow: "此刻关照",
+    eyebrow: "觉察此刻",
     countLabel: "100 件小事",
     title: "从一件具体的小事开始",
-    intro: "不需要完成什么大事，照顾此刻也可以很简单。",
+    intro: "不需要完成什么大事，观照此刻也可以很简单。",
     actionLabel: "换一件小事"
   },
   productsSection: { title: "继续探索自己", subtitle: "当你想更深入地理解自己，可以从这里继续探索。" },
   recommendation: {
     eyebrow: "分享见己",
     title: "分享给朋友，一起记录、探索与成长",
-    text: "最近在用【见己】安静地记录生活。留下自己的感受、想法和真实发生的事，在这个过程中更好地觉察和关照自己。推荐给你试试看。",
+    text: "最近在用【见己】安静地记录生活。留下自己的感受、想法和真实发生的事，在这个过程中更好地觉察和理解自己。推荐给你试试看。",
     copyButtonLabel: "复制推荐语"
   },
   links: {
@@ -66,7 +66,7 @@ const fallbackContent: ProductContent = {
   },
   products: [],
   greetings: ["正念并不难，我们只需要记得去做。——莎朗·扎尔茨贝格"],
-  release: { version: "0.1.1" }
+  release: { version: "0.1.2" }
 };
 
 const cacheKey = "daylog-remote-content-v3";

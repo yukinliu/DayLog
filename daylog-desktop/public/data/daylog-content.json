@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "remoteContentUrl": "https://raw.githubusercontent.com/yukinliu/DayLog/main/daylog-desktop/public/data/daylog-content.json",
   "charge": {
-    "eyebrow": "此刻关照",
+    "eyebrow": "觉察此刻",
     "countLabel": "100 件小事",
     "title": "从一件具体的小事开始",
-    "intro": "不需要完成什么大事，照顾此刻也可以很简单。",
+    "intro": "不需要完成什么大事，观照此刻也可以很简单。",
     "actionLabel": "换一件小事"
   },
   "productsSection": {
@@ -15,7 +15,7 @@
   "recommendation": {
     "eyebrow": "分享见己",
     "title": "分享给朋友，一起记录、探索与成长",
-    "text": "最近在用【见己】安静地记录生活。留下自己的感受、想法和真实发生的事，在这个过程中更好地觉察和关照自己。推荐给你试试看。",
+    "text": "最近在用【见己】安静地记录生活。留下自己的感受、想法和真实发生的事，在这个过程中更好地觉察和理解自己。推荐给你试试看。",
     "copyButtonLabel": "复制推荐语"
   },
   "links": {
@@ -74,8 +74,8 @@
     "愿你的正念练习生长、开花，并在每时每刻、每一天里滋养你的生命。——《多舛的生命》"
   ],
   "release": {
-    "version": "0.1.1",
-    "publishedAt": "2026-08-13",
-    "notes": "优化开场问候、今日记录回显、明细搜索、项目日期与筛选及日历显示"
+    "version": "0.1.2",
+    "publishedAt": "2026-08-15",
+    "notes": "优化记录页跨日补记与即时管理、观照体验和项目配色，并修复偶发关闭黑屏"
   }
 }
