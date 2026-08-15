@@ -186,6 +186,9 @@ export default function App() {
         // expose a transient black frame on either macOS or Windows.
         await appWindow.hide();
         await invoke("close_main_window");
+        // macOS keeps the window and WebView alive while hidden. Reset the guard
+        // so the same window can be closed again after it is reopened from Dock.
+        closeInProgress = false;
       } catch (error) {
         closeInProgress = false;
         await appWindow.show().catch(() => undefined);
